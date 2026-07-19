@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { STORAGE_KEY } from '../constants'
-import { createEmptyState, createSeedState } from '../data/seed'
+import { createEmptyState } from '../data/seed'
 import type {
   Commitment,
   Expense,
@@ -37,7 +37,6 @@ interface FinanceContextValue {
   updateGrabRecord: (id: string, data: Omit<GrabRecord, 'id'>) => void
   deleteGrabRecord: (id: string) => void
   clearAllData: () => void
-  resetToSeed: () => void
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null)
@@ -65,11 +64,11 @@ function normalizeState(parsed: Partial<FinanceState>): FinanceState | null {
 function loadState(): FinanceState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return createSeedState()
+    if (!raw) return createEmptyState()
     const parsed = JSON.parse(raw) as Partial<FinanceState>
-    return normalizeState(parsed) ?? createSeedState()
+    return normalizeState(parsed) ?? createEmptyState()
   } catch {
-    return createSeedState()
+    return createEmptyState()
   }
 }
 
@@ -215,10 +214,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     persistAndSet(createEmptyState())
   }, [persistAndSet])
 
-  const resetToSeed = useCallback(() => {
-    persistAndSet(createSeedState())
-  }, [persistAndSet])
-
   const value = useMemo(
     () => ({
       state,
@@ -238,7 +233,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       updateGrabRecord,
       deleteGrabRecord,
       clearAllData,
-      resetToSeed,
     }),
     [
       state,
@@ -258,7 +252,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       updateGrabRecord,
       deleteGrabRecord,
       clearAllData,
-      resetToSeed,
     ],
   )
 
