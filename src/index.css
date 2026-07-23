@@ -1287,6 +1287,134 @@ p {
   color: var(--muted);
 }
 
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.status-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-pill--healthy {
+  color: #0f7a52;
+  background: color-mix(in srgb, #1a9a6c 16%, transparent);
+}
+
+.status-pill--warning {
+  color: #a67c12;
+  background: color-mix(in srgb, #e0a83a 18%, transparent);
+}
+
+.status-pill--critical {
+  color: #b33a28;
+  background: color-mix(in srgb, #d4543c 16%, transparent);
+}
+
+.status-pill__reason {
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+
+.income-split {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.income-split__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.income-split__row span {
+  color: var(--muted);
+}
+
+.segmented--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.range-tabs {
+  margin-bottom: 14px;
+}
+
+.wealth-change {
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.spark-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 120px;
+  padding: 8px 2px 0;
+}
+
+.spark-bars__col {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  min-width: 0;
+}
+
+.spark-bars__fill {
+  width: 100%;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--accent) 90%, white),
+    var(--accent)
+  );
+  min-height: 8px;
+}
+
+.spark-bars__fill.is-neg {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #d4543c 80%, white),
+    #d4543c
+  );
+}
+
+.runway-value {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 2.2rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 4px 0 6px;
+}
+
+.form--inline {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 560px) {
+  .form--inline {
+    grid-template-columns: 1.2fr 1fr auto;
+    align-items: end;
+  }
+}
+
 @media (min-width: 640px) {
   .app-shell {
     padding-left: 20px;

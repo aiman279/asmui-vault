@@ -4,7 +4,7 @@ import { ComparePill } from '../components/ComparePill'
 import { MiniBars } from '../components/MiniBars'
 import { ProgressBar } from '../components/ProgressBar'
 import { StatCard } from '../components/StatCard'
-import { CATEGORY_LABELS } from '../constants'
+import { CATEGORY_LABELS, STATUS_LABELS } from '../constants'
 import { useFinance } from '../hooks/useFinance'
 import {
   availableBalance,
@@ -12,16 +12,19 @@ import {
   currentMonthKey,
   emergencyFundGoal,
   filterByMonth,
+  financialStatus,
   goalProgress,
+  monthIncomeBreakdown,
   previousMonthKey,
-  summarizeMonth,
+  runwayMonths,
   totalCommitments,
+  wealthTotals,
 } from '../utils/calculations'
-import { formatDate, formatMoney, formatMonthLabel, formatPercent } from '../utils/format'
-import { grabNetProfit, summarizeGrabMonth } from '../utils/grab'
+import { formatMoney, formatMonthLabel, formatPercent } from '../utils/format'
+import { summarizeGrabMonth } from '../utils/grab'
 import { buildInsights } from '../utils/insights'
 
-const BALANCE_HIDDEN_KEY = 'asmui-balance-hidden'
+const BALANCE_HIDDEN_KEY = 'aflow-balance-hidden'
 
 export function Dashboard() {
   const { state } = useFinance()
@@ -43,22 +46,22 @@ export function Dashboard() {
 
   const month = currentMonthKey()
   const prev = previousMonthKey(month)
-  const summary = summarizeMonth(state.incomes, state.expenses, month)
-  const prevSummary = summarizeMonth(state.incomes, state.expenses, prev)
-  const grabSummary = summarizeGrabMonth(state.grabRecords ?? [], month)
-  const prevGrab = summarizeGrabMonth(state.grabRecords ?? [], prev)
-  const totalIncome = summary.income + grabSummary.netProfit
-  const prevTotalIncome = prevSummary.income + prevGrab.netProfit
-  const totalSaved = totalIncome - summary.expenses
-  const prevTotalSaved = prevTotalIncome - prevSummary.expenses
-  const savingRate = totalIncome > 0 ? (totalSaved / totalIncome) * 100 : 0
+  const income = monthIncomeBreakdown(state, month)
+  const prevIncome = monthIncomeBreakdown(state, prev)
+  const expenses = filterByMonth(state.expenses, month)
+  const expenseTotal = expenses.reduce((s, e) => s + e.amount, 0)
+  const prevExpenses = filterByMonth(state.expenses, prev)
+  const prevExpenseTotal = prevExpenses.reduce((s, e) => s + e.amount, 0)
+  const savings = income.total - expenseTotal
+  const prevSavings = prevIncome.total - prevExpenseTotal
+  const savingRate = income.total > 0 ? (savings / income.total) * 100 : 0
   const prevSavingRate =
-    prevTotalIncome > 0 ? (prevTotalSaved / prevTotalIncome) * 100 : 0
+    prevIncome.total > 0 ? (prevSavings / prevIncome.total) * 100 : 0
   const balance = availableBalance(state)
+  const { status, reasons } = financialStatus(state)
   const emergency = emergencyFundGoal(state.goals)
   const otherGoals = state.goals.filter((g) => g.id !== emergency?.id).slice(0, 2)
-  const monthExpenses = filterByMonth(state.expenses, month)
-  const totals = categoryTotals(monthExpenses)
+  const totals = categoryTotals(expenses)
   const maxCat = Math.max(...Object.values(totals), 1)
   const chartItems = Object.entries(totals)
     .map(([category, value]) => ({
@@ -71,6 +74,9 @@ export function Dashboard() {
   const insights = buildInsights(state)
   const [year, monthNum] = month.split('-').map(Number)
   const committed = totalCommitments(state.commitments)
+  const grabSummary = summarizeGrabMonth(state.grabRecords ?? [], month)
+  const netWorth = wealthTotals(state.wealthItems ?? []).netWorth
+  const runway = runwayMonths(state, 'realistic')
 
   return (
     <div className="stack">
@@ -95,6 +101,11 @@ export function Dashboard() {
           After commitments
           {balanceHidden ? '' : `: ${formatMoney(committed)} reserved`}
         </p>
+        <div className={`status-pill status-pill--${status}`}>
+          <span className="status-pill__dot" aria-hidden="true" />
+          {STATUS_LABELS[status]}
+        </div>
+        <p className="muted status-pill__reason">{reasons[0]}</p>
         <div className="quick-actions">
           <Link to="/grab" className="btn btn--primary">
             Log Grab
@@ -105,9 +116,58 @@ export function Dashboard() {
         </div>
       </section>
 
+      <section className="panel reveal delay-1">
+        <div className="panel__head">
+          <h2>Monthly overview</h2>
+          <Link to="/summary" className="text-link">
+            Full report
+          </Link>
+        </div>
+        <div className="stat-grid">
+          <StatCard
+            label="Total income"
+            value={formatMoney(income.total)}
+            tone="positive"
+          >
+            <ComparePill current={income.total} previous={prevIncome.total} />
+          </StatCard>
+          <StatCard
+            label="Total expenses"
+            value={formatMoney(expenseTotal)}
+            tone="negative"
+          >
+            <ComparePill current={expenseTotal} previous={prevExpenseTotal} />
+          </StatCard>
+          <StatCard
+            label="Total savings"
+            value={formatMoney(savings)}
+            tone={savings >= 0 ? 'positive' : 'negative'}
+          >
+            <ComparePill current={savings} previous={prevSavings} />
+          </StatCard>
+          <StatCard label="Saving rate" value={formatPercent(savingRate)}>
+            <ComparePill current={savingRate} previous={prevSavingRate} />
+          </StatCard>
+        </div>
+        <div className="income-split">
+          <div className="income-split__row">
+            <span>Salary</span>
+            <strong>{formatMoney(income.salary)}</strong>
+          </div>
+          <div className="income-split__row">
+            <span>Grab income</span>
+            <strong>{formatMoney(income.grab)}</strong>
+          </div>
+          <div className="income-split__row">
+            <span>Other income</span>
+            <strong>{formatMoney(income.other)}</strong>
+          </div>
+        </div>
+      </section>
+
       <section className="panel grab-performance reveal delay-1">
         <div className="panel__head">
-          <h2>Grab performance</h2>
+          <h2>Grab this month</h2>
           <Link to="/grab" className="text-link">
             Open tracker
           </Link>
@@ -115,54 +175,44 @@ export function Dashboard() {
         <p className="grab-performance__profit">
           {formatMoney(grabSummary.netProfit)}
         </p>
-        <p className="muted grab-performance__caption">This Month Grab Profit</p>
+        <p className="muted grab-performance__caption">Net profit after costs</p>
         <div className="grab-performance__grid">
           <div>
-            <p className="grab-performance__label">Best Earning Day</p>
+            <p className="grab-performance__label">Gross</p>
             <p className="grab-performance__value">
-              {grabSummary.bestDay
-                ? formatMoney(grabNetProfit(grabSummary.bestDay))
-                : '—'}
-            </p>
-            <p className="grab-performance__meta">
-              {grabSummary.bestDay
-                ? formatDate(grabSummary.bestDay.date)
-                : 'No days yet'}
+              {formatMoney(grabSummary.grossEarnings)}
             </p>
           </div>
           <div>
-            <p className="grab-performance__label">Average Profit / Day</p>
+            <p className="grab-performance__label">Avg / day</p>
             <p className="grab-performance__value">
               {formatMoney(grabSummary.averageDailyProfit)}
             </p>
           </div>
           <div>
-            <p className="grab-performance__label">Days Active</p>
+            <p className="grab-performance__label">Active days</p>
             <p className="grab-performance__value">{grabSummary.drivingDays}</p>
           </div>
         </div>
       </section>
 
-      <section className="stat-grid reveal delay-1">
-        <StatCard label="Income" value={formatMoney(totalIncome)} tone="positive">
-          <ComparePill current={totalIncome} previous={prevTotalIncome} />
+      <section className="stat-grid reveal delay-2">
+        <StatCard
+          label="Net worth"
+          value={balanceHidden ? '••••' : formatMoney(netWorth)}
+          tone={netWorth >= 0 ? 'positive' : 'negative'}
+        >
+          <Link to="/wealth" className="text-link">
+            Wealth
+          </Link>
         </StatCard>
         <StatCard
-          label="Expenses"
-          value={formatMoney(summary.expenses)}
-          tone="negative"
+          label="Runway"
+          value={runway >= 99 ? '99+ mo' : `${runway.toFixed(1)} mo`}
         >
-          <ComparePill current={summary.expenses} previous={prevSummary.expenses} />
-        </StatCard>
-        <StatCard
-          label="Saved"
-          value={formatMoney(totalSaved)}
-          tone={totalSaved >= 0 ? 'positive' : 'negative'}
-        >
-          <ComparePill current={totalSaved} previous={prevTotalSaved} />
-        </StatCard>
-        <StatCard label="Saving rate" value={formatPercent(savingRate)}>
-          <ComparePill current={savingRate} previous={prevSavingRate} />
+          <Link to="/wealth" className="text-link">
+            Details
+          </Link>
         </StatCard>
       </section>
 
@@ -186,6 +236,9 @@ export function Dashboard() {
         <section className="panel reveal delay-2">
           <div className="panel__head">
             <h2>Goal progress</h2>
+            <Link to="/goals" className="text-link">
+              All goals
+            </Link>
           </div>
           <div className="goal-list">
             {otherGoals.map((goal) => (
@@ -204,8 +257,8 @@ export function Dashboard() {
       <section className="panel reveal delay-3">
         <div className="panel__head">
           <h2>Spending snapshot</h2>
-          <Link to="/summary" className="text-link">
-            Full summary
+          <Link to="/expenses" className="text-link">
+            Expenses
           </Link>
         </div>
         <MiniBars items={chartItems} />
@@ -213,7 +266,7 @@ export function Dashboard() {
 
       <section className="panel reveal delay-3">
         <div className="panel__head">
-          <h2>Smart insights</h2>
+          <h2>Insights</h2>
         </div>
         <ul className="insights">
           {insights.map((insight) => (

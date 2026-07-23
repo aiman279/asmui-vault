@@ -5,13 +5,26 @@ export type ExpenseCategory =
   | 'car'
   | 'family'
   | 'food'
+  | 'phone'
   | 'utilities'
   | 'entertainment'
   | 'shopping'
-  | 'transportation'
   | 'others'
 
 export type PaymentMethod = 'cash' | 'card' | 'ewallet' | 'bank'
+
+export type AssetCategory =
+  | 'cash'
+  | 'asb'
+  | 'investment'
+  | 'gold'
+  | 'stocks'
+  | 'crypto'
+  | 'property'
+
+export type LiabilityCategory = 'carLoan' | 'houseLoan' | 'otherDebt'
+
+export type FinancialStatus = 'healthy' | 'warning' | 'critical'
 
 export interface Income {
   id: string
@@ -54,15 +67,20 @@ export interface GrabRecord {
   notes: string
 }
 
-export interface GrabMonthSummary {
-  grossEarnings: number
-  petrolCost: number
-  otherCost: number
-  credit: number
-  netProfit: number
-  averageDailyProfit: number
-  drivingDays: number
-  bestDay: GrabRecord | null
+export interface WealthItem {
+  id: string
+  kind: 'asset' | 'liability'
+  category: AssetCategory | LiabilityCategory
+  label: string
+  amount: number
+}
+
+export interface WealthSnapshot {
+  id: string
+  date: string
+  totalAssets: number
+  totalLiabilities: number
+  netWorth: number
 }
 
 export interface FinanceState {
@@ -71,6 +89,8 @@ export interface FinanceState {
   goals: Goal[]
   commitments: Commitment[]
   grabRecords: GrabRecord[]
+  wealthItems: WealthItem[]
+  wealthSnapshots: WealthSnapshot[]
 }
 
 export interface MonthSummary {
@@ -80,4 +100,15 @@ export interface MonthSummary {
   savingRate: number
   biggestCategory: ExpenseCategory | null
   biggestCategoryAmount: number
+}
+
+export interface GrabMonthSummary {
+  grossEarnings: number
+  petrolCost: number
+  otherCost: number
+  credit: number
+  netProfit: number
+  averageDailyProfit: number
+  drivingDays: number
+  bestDay: GrabRecord | null
 }

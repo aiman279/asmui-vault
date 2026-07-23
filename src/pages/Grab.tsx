@@ -16,6 +16,7 @@ import {
   todayISO,
 } from '../utils/format'
 import {
+  buildGrabInsights,
   filterByWeek,
   formatWeekLabel,
   grabBreakdownPercents,
@@ -281,6 +282,25 @@ export function GrabPage() {
               },
             ]}
           />
+        </section>
+
+        <section className="panel">
+          <div className="panel__head">
+            <h2>Performance insights</h2>
+          </div>
+          <ul className="insights">
+            {buildGrabInsights(
+              state.grabRecords,
+              mode === 'month' ? monthKey : currentMonthKey(),
+            ).map((insight) => (
+              <li
+                key={insight.id}
+                className={`insight insight--${insight.tone}`}
+              >
+                {insight.text}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section className="panel">

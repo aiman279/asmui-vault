@@ -5,6 +5,7 @@ import {
   currentMonthKey,
   filterByMonth,
   goalProgress,
+  monthIncomeBreakdown,
   previousMonthKey,
   summarizeMonth,
 } from './calculations'
@@ -24,11 +25,38 @@ function foodSpend(expenses: Expense[]): number {
 export function buildInsights(state: FinanceState): Insight[] {
   const month = currentMonthKey()
   const prev = previousMonthKey(month)
+  const income = monthIncomeBreakdown(state, month)
   const current = summarizeMonth(state.incomes, state.expenses, month)
   const previous = summarizeMonth(state.incomes, state.expenses, prev)
   const thisExpenses = filterByMonth(state.expenses, month)
   const prevExpenses = filterByMonth(state.expenses, prev)
   const insights: Insight[] = []
+
+  const totalIncome = income.total
+  const totalSaved = totalIncome - current.expenses
+  const prevIncome = monthIncomeBreakdown(state, prev)
+  const prevSaved = prevIncome.total - previous.expenses
+
+  if (prevIncome.total > 0 || previous.expenses > 0) {
+    if (totalSaved > prevSaved) {
+      insights.push({
+        id: 'savings-up',
+        tone: 'positive',
+        text: 'Your savings increased compared to last month',
+      })
+    }
+  }
+
+  if (totalIncome > 0 && income.grab > 0) {
+    const share = Math.round((income.grab / totalIncome) * 100)
+    if (share >= 15) {
+      insights.push({
+        id: 'grab-share',
+        tone: 'neutral',
+        text: `Your Grab income contributed ${share}% of total income`,
+      })
+    }
+  }
 
   const foodNow = foodSpend(thisExpenses)
   const foodPrev = foodSpend(prevExpenses)
@@ -46,14 +74,18 @@ export function buildInsights(state: FinanceState): Insight[] {
     })
   }
 
-  if (previous.income > 0 || previous.expenses > 0) {
-    if (current.savingRate > previous.savingRate + 2) {
+  if (previous.income > 0 || previous.expenses > 0 || prevIncome.total > 0) {
+    const currentSavingRate =
+      totalIncome > 0 ? (totalSaved / totalIncome) * 100 : 0
+    const prevSavingRate =
+      prevIncome.total > 0 ? (prevSaved / prevIncome.total) * 100 : 0
+    if (currentSavingRate > prevSavingRate + 2) {
       insights.push({
         id: 'saving-up',
         tone: 'positive',
         text: 'Your saving rate increased',
       })
-    } else if (current.savingRate < previous.savingRate - 2) {
+    } else if (currentSavingRate < prevSavingRate - 2) {
       insights.push({
         id: 'saving-down',
         tone: 'watch',

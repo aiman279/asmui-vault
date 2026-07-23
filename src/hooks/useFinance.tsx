@@ -7,17 +7,21 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { STORAGE_KEY } from '../constants'
+import { LEGACY_STORAGE_KEYS, STORAGE_KEY } from '../constants'
 import { createEmptyState } from '../data/seed'
 import type {
   Commitment,
   Expense,
+  ExpenseCategory,
   FinanceState,
   Goal,
   GrabRecord,
   Income,
+  WealthItem,
+  WealthSnapshot,
 } from '../types'
-import { uid } from '../utils/format'
+import { todayISO, uid } from '../utils/format'
+import { wealthTotals } from '../utils/calculations'
 
 interface FinanceContextValue {
   state: FinanceState
@@ -36,10 +40,31 @@ interface FinanceContextValue {
   addGrabRecord: (data: Omit<GrabRecord, 'id'>) => void
   updateGrabRecord: (id: string, data: Omit<GrabRecord, 'id'>) => void
   deleteGrabRecord: (id: string) => void
+  upsertWealthItem: (data: Omit<WealthItem, 'id'> & { id?: string }) => void
+  deleteWealthItem: (id: string) => void
+  recordWealthSnapshot: () => void
   clearAllData: () => void
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null)
+
+function migrateExpenseCategory(category: string): ExpenseCategory {
+  if (category === 'transportation') return 'others'
+  const allowed: ExpenseCategory[] = [
+    'housing',
+    'car',
+    'family',
+    'food',
+    'phone',
+    'utilities',
+    'entertainment',
+    'shopping',
+    'others',
+  ]
+  return allowed.includes(category as ExpenseCategory)
+    ? (category as ExpenseCategory)
+    : 'others'
+}
 
 function normalizeState(parsed: Partial<FinanceState>): FinanceState | null {
   if (
@@ -54,16 +79,32 @@ function normalizeState(parsed: Partial<FinanceState>): FinanceState | null {
 
   return {
     incomes: parsed.incomes,
-    expenses: parsed.expenses,
+    expenses: parsed.expenses.map((e) => ({
+      ...e,
+      category: migrateExpenseCategory(e.category as string),
+    })),
     goals: parsed.goals,
     commitments: parsed.commitments,
     grabRecords: Array.isArray(parsed.grabRecords) ? parsed.grabRecords : [],
+    wealthItems: Array.isArray(parsed.wealthItems) ? parsed.wealthItems : [],
+    wealthSnapshots: Array.isArray(parsed.wealthSnapshots)
+      ? parsed.wealthSnapshots
+      : [],
   }
 }
 
 function loadState(): FinanceState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    let raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) {
+      for (const key of LEGACY_STORAGE_KEYS) {
+        const legacy = localStorage.getItem(key)
+        if (legacy) {
+          raw = legacy
+          break
+        }
+      }
+    }
     if (!raw) return createEmptyState()
     const parsed = JSON.parse(raw) as Partial<FinanceState>
     return normalizeState(parsed) ?? createEmptyState()
@@ -200,12 +241,79 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }))
   }, [])
 
+  const upsertWealthItem = useCallback(
+    (data: Omit<WealthItem, 'id'> & { id?: string }) => {
+      setState((prev) => {
+        const items = prev.wealthItems ?? []
+        if (data.id) {
+          return {
+            ...prev,
+            wealthItems: items.map((item) =>
+              item.id === data.id
+                ? {
+                    id: data.id,
+                    kind: data.kind,
+                    category: data.category,
+                    label: data.label,
+                    amount: data.amount,
+                  }
+                : item,
+            ),
+          }
+        }
+        return {
+          ...prev,
+          wealthItems: [
+            ...items,
+            {
+              id: uid(),
+              kind: data.kind,
+              category: data.category,
+              label: data.label,
+              amount: data.amount,
+            },
+          ],
+        }
+      })
+    },
+    [],
+  )
+
+  const deleteWealthItem = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      wealthItems: (prev.wealthItems ?? []).filter((item) => item.id !== id),
+    }))
+  }, [])
+
+  const recordWealthSnapshot = useCallback(() => {
+    setState((prev) => {
+      const totals = wealthTotals(prev.wealthItems ?? [])
+      const snapshot: WealthSnapshot = {
+        id: uid(),
+        date: todayISO(),
+        totalAssets: totals.assets,
+        totalLiabilities: totals.liabilities,
+        netWorth: totals.netWorth,
+      }
+      const withoutToday = (prev.wealthSnapshots ?? []).filter(
+        (s) => s.date !== snapshot.date,
+      )
+      return {
+        ...prev,
+        wealthSnapshots: [...withoutToday, snapshot],
+      }
+    })
+  }, [])
+
   const persistAndSet = useCallback((next: FinanceState) => {
     try {
-      localStorage.removeItem('pocket-finance-v1')
+      for (const key of LEGACY_STORAGE_KEYS) {
+        localStorage.removeItem(key)
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     } catch {
-      /* ignore quota / private mode errors */
+      /* ignore */
     }
     setState(next)
   }, [])
@@ -232,6 +340,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       addGrabRecord,
       updateGrabRecord,
       deleteGrabRecord,
+      upsertWealthItem,
+      deleteWealthItem,
+      recordWealthSnapshot,
       clearAllData,
     }),
     [
@@ -251,6 +362,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       addGrabRecord,
       updateGrabRecord,
       deleteGrabRecord,
+      upsertWealthItem,
+      deleteWealthItem,
+      recordWealthSnapshot,
       clearAllData,
     ],
   )

@@ -184,3 +184,70 @@ export function totalGrabNetProfit(
     : records
   return list.reduce((sum, record) => sum + grabNetProfit(record), 0)
 }
+
+export interface GrabInsight {
+  id: string
+  tone: 'positive' | 'neutral' | 'watch'
+  text: string
+}
+
+export function buildGrabInsights(
+  records: GrabRecord[],
+  monthKey = currentMonthKey(),
+): GrabInsight[] {
+  const current = summarizeGrabMonth(records, monthKey)
+  const [y, m] = monthKey.split('-').map(Number)
+  const prevDate = new Date(y, m - 2, 1)
+  const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`
+  const previous = summarizeGrabMonth(records, prevKey)
+  const percents = grabBreakdownPercents(current)
+  const insights: GrabInsight[] = []
+
+  if (previous.drivingDays > 0 && current.drivingDays > 0) {
+    if (current.averageDailyProfit > previous.averageDailyProfit * 1.05) {
+      insights.push({
+        id: 'avg-up',
+        tone: 'positive',
+        text: 'Your average Grab profit increased this month',
+      })
+    } else if (current.averageDailyProfit < previous.averageDailyProfit * 0.95) {
+      insights.push({
+        id: 'avg-down',
+        tone: 'watch',
+        text: 'Your average Grab profit dipped this month',
+      })
+    }
+  }
+
+  if (current.grossEarnings > 0 && percents.petrol >= 10) {
+    insights.push({
+      id: 'petrol-share',
+      tone: percents.petrol >= 25 ? 'watch' : 'neutral',
+      text: `Petrol represents ${Math.round(percents.petrol)}% of your Grab income`,
+    })
+  }
+
+  if (current.drivingDays >= 3 && current.netProfit > 0) {
+    insights.push({
+      id: 'net-ok',
+      tone: 'positive',
+      text: `Net profit of ${current.drivingDays} active days looks solid`,
+    })
+  }
+
+  if (insights.length === 0 && current.drivingDays === 0) {
+    insights.push({
+      id: 'empty',
+      tone: 'neutral',
+      text: 'Log a driving day to see performance insights',
+    })
+  } else if (insights.length === 0) {
+    insights.push({
+      id: 'steady',
+      tone: 'neutral',
+      text: 'Keep logging daily — small costs add up fast',
+    })
+  }
+
+  return insights.slice(0, 3)
+}

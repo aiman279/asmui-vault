@@ -16,41 +16,50 @@ export function MorePage() {
       <section className="page-header">
         <div>
           <h1>More</h1>
-          <p className="muted">Summary, commitments, and simple tools.</p>
+          <p className="muted">Income, goals, report, and tools.</p>
         </div>
       </section>
 
       <section className="panel menu-list">
-        <Link to="/grab" className="menu-item">
+        <Link to="/income" className="menu-item">
           <div>
-            <p className="menu-item__title">Grab tracker</p>
+            <p className="menu-item__title">Income</p>
             <p className="menu-item__desc">
-              Daily earn, petrol, net profit, and driving performance
+              Salary and other non-Grab income
             </p>
           </div>
           <span aria-hidden="true">→</span>
         </Link>
-        <Link to="/income" className="menu-item">
+        <Link to="/goals" className="menu-item">
           <div>
-            <p className="menu-item__title">Income (salary & other)</p>
+            <p className="menu-item__title">Financial goals</p>
             <p className="menu-item__desc">
-              Log salary and non-Grab side income here
+              Emergency fund, house, and investment targets
             </p>
           </div>
           <span aria-hidden="true">→</span>
         </Link>
         <Link to="/summary" className="menu-item">
           <div>
-            <p className="menu-item__title">Monthly money summary</p>
+            <p className="menu-item__title">Monthly report</p>
             <p className="menu-item__desc">
-              Income, expenses, savings, and month-to-month compare
+              Income, expenses, savings, and insights
+            </p>
+          </div>
+          <span aria-hidden="true">→</span>
+        </Link>
+        <Link to="/wealth" className="menu-item">
+          <div>
+            <p className="menu-item__title">Wealth & runway</p>
+            <p className="menu-item__desc">
+              Net worth, assets, debts, and survival months
             </p>
           </div>
           <span aria-hidden="true">→</span>
         </Link>
         <Link to="/commitments" className="menu-item">
           <div>
-            <p className="menu-item__title">Fixed monthly commitments</p>
+            <p className="menu-item__title">Fixed commitments</p>
             <p className="menu-item__desc">
               Rent, car, family support, subscriptions
             </p>
@@ -60,11 +69,11 @@ export function MorePage() {
       </section>
 
       <section className="panel">
-        <h2>About Asmu&apos;i Vault</h2>
+        <h2>About A.FLOW</h2>
         <p className="muted about-copy">
-          A minimal money tracker for daily use — log income and expenses fast,
-          see where money goes, and stay on track with savings goals. No complex
-          accounting.
+          A.FLOW is your personal financial flow system — track Grab profit,
+          expenses, wealth, and goals in one calm place. Built for clarity, not
+          complicated accounting.
         </p>
 
         {!confirmClear ? (

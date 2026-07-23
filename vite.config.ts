@@ -9,9 +9,10 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png'],
       manifest: {
-        name: "Asmu'i Vault",
-        short_name: "Asmu'i Vault",
-        description: "Personal money tracker — daily Grab, expenses, and goals",
+        name: 'A.FLOW',
+        short_name: 'A.FLOW',
+        description:
+          'Personal financial flow — Grab profit, expenses, wealth, and goals',
         theme_color: '#0d6e5f',
         background_color: '#0b1412',
         display: 'standalone',

@@ -5,7 +5,7 @@ const links = [
   { to: '/', label: 'Home', icon: HomeIcon },
   { to: '/grab', label: 'Grab', icon: GrabIcon },
   { to: '/expenses', label: 'Spend', icon: SpendIcon },
-  { to: '/goals', label: 'Goals', icon: GoalsIcon },
+  { to: '/wealth', label: 'Wealth', icon: WealthIcon },
   { to: '/more', label: 'More', icon: MoreIcon },
 ]
 
@@ -18,8 +18,8 @@ export function Layout() {
           <div className="brand">
             <span className="brand__mark" aria-hidden="true" />
             <div>
-              <p className="brand__name">Asmu&apos;i Vault</p>
-              <p className="brand__tag">Your money, kept clear</p>
+              <p className="brand__name">A.FLOW</p>
+              <p className="brand__tag">Personal financial flow</p>
             </div>
           </div>
           <ThemeToggle />
@@ -95,12 +95,23 @@ function SpendIcon() {
   )
 }
 
-function GoalsIcon() {
+function WealthIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="3.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="1" fill="currentColor" />
+      <path
+        d="M4 19V9l8-5 8 5v10"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 19v-5h6v5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

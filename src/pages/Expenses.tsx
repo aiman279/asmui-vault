@@ -10,7 +10,9 @@ import type { Expense, ExpenseCategory, PaymentMethod } from '../types'
 import {
   currentMonthKey,
   filterByMonth,
+  getBiggestCategory,
   getMonthKey,
+  previousMonthKey,
   sumAmounts,
 } from '../utils/calculations'
 import { formatDate, formatMoney, formatMonthLabel, todayISO } from '../utils/format'
@@ -30,6 +32,7 @@ export function ExpensesPage() {
   const [open, setOpen] = useState(false)
 
   const month = currentMonthKey()
+  const prev = previousMonthKey(month)
   const [year, monthNum] = month.split('-').map(Number)
   const sorted = useMemo(
     () => [...state.expenses].sort((a, b) => b.date.localeCompare(a.date)),
@@ -39,7 +42,17 @@ export function ExpensesPage() {
     () => filterByMonth(state.expenses, month),
     [state.expenses, month],
   )
+  const prevMonthExpenses = useMemo(
+    () => filterByMonth(state.expenses, prev),
+    [state.expenses, prev],
+  )
   const monthTotal = sumAmounts(monthExpenses)
+  const prevMonthTotal = sumAmounts(prevMonthExpenses)
+  const biggest = getBiggestCategory(monthExpenses)
+  const spendTrend =
+    prevMonthTotal === 0
+      ? null
+      : ((monthTotal - prevMonthTotal) / prevMonthTotal) * 100
 
   const draftAmount = Number(form.amount)
   const draftValid = Number.isFinite(draftAmount) && draftAmount > 0
@@ -131,6 +144,47 @@ export function ExpensesPage() {
           {open ? ' · updating as you type' : ''}
         </p>
       </section>
+
+      {monthTotal > 0 || prevMonthTotal > 0 ? (
+        <section className="panel">
+          <div className="summary-rows">
+            <div className="summary-row">
+              <span>Biggest category</span>
+              <strong>
+                {biggest.category
+                  ? CATEGORY_LABELS[biggest.category]
+                  : '—'}
+              </strong>
+            </div>
+            {biggest.category ? (
+              <div className="summary-row">
+                <span>{CATEGORY_LABELS[biggest.category]} spend</span>
+                <strong className="text-danger">
+                  {formatMoney(biggest.amount)}
+                </strong>
+              </div>
+            ) : null}
+            <div className="summary-row">
+              <span>Spending trend</span>
+              <strong
+                className={
+                  spendTrend === null
+                    ? ''
+                    : spendTrend > 5
+                      ? 'text-danger'
+                      : spendTrend < -5
+                        ? 'text-positive'
+                        : ''
+                }
+              >
+                {spendTrend === null
+                  ? 'No last month yet'
+                  : `${spendTrend > 0 ? '+' : ''}${Math.round(spendTrend)}% vs last month`}
+              </strong>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {open ? (
         <form className="panel form" onSubmit={handleSubmit}>
