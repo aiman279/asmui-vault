@@ -84,7 +84,12 @@ export function summarizeGrabRecords(records: GrabRecord[]): GrabMonthSummary {
   const credit = records.reduce((s, r) => s + r.credit, 0)
   const netProfit = records.reduce((s, r) => s + grabNetProfit(r), 0)
   const drivingDays = records.length
+  const drivingHours = records.reduce(
+    (s, r) => s + (Number(r.drivingHours) || 0),
+    0,
+  )
   const averageDailyProfit = drivingDays > 0 ? netProfit / drivingDays : 0
+  const profitPerHour = drivingHours > 0 ? netProfit / drivingHours : 0
 
   let bestDay: GrabRecord | null = null
   let bestNet = Number.NEGATIVE_INFINITY
@@ -104,6 +109,8 @@ export function summarizeGrabRecords(records: GrabRecord[]): GrabMonthSummary {
     netProfit,
     averageDailyProfit,
     drivingDays,
+    drivingHours,
+    profitPerHour,
     bestDay,
   }
 }
@@ -203,23 +210,26 @@ export function buildGrabInsights(
   const percents = grabBreakdownPercents(current)
   const insights: GrabInsight[] = []
 
-  if (previous.drivingDays > 0 && current.drivingDays > 0) {
-    if (current.averageDailyProfit > previous.averageDailyProfit * 1.05) {
+  if (previous.netProfit > 0 && current.drivingDays > 0) {
+    const change =
+      ((current.netProfit - previous.netProfit) / Math.abs(previous.netProfit)) *
+      100
+    if (change >= 5) {
       insights.push({
-        id: 'avg-up',
+        id: 'profit-up',
         tone: 'positive',
-        text: 'Your average Grab profit increased this month',
+        text: `Your Grab profit increased ${Math.round(change)}% compared to last month`,
       })
-    } else if (current.averageDailyProfit < previous.averageDailyProfit * 0.95) {
+    } else if (change <= -5) {
       insights.push({
-        id: 'avg-down',
+        id: 'profit-down',
         tone: 'watch',
-        text: 'Your average Grab profit dipped this month',
+        text: `Your Grab profit dropped ${Math.round(Math.abs(change))}% compared to last month`,
       })
     }
   }
 
-  if (current.grossEarnings > 0 && percents.petrol >= 10) {
+  if (current.grossEarnings > 0 && percents.petrol >= 8) {
     insights.push({
       id: 'petrol-share',
       tone: percents.petrol >= 25 ? 'watch' : 'neutral',
@@ -227,11 +237,23 @@ export function buildGrabInsights(
     })
   }
 
-  if (current.drivingDays >= 3 && current.netProfit > 0) {
+  if (current.bestDay) {
+    const day = new Date(`${current.bestDay.date}T00:00:00`).toLocaleDateString(
+      'en-MY',
+      { weekday: 'long' },
+    )
     insights.push({
-      id: 'net-ok',
+      id: 'best-day',
       tone: 'positive',
-      text: `Net profit of ${current.drivingDays} active days looks solid`,
+      text: `Your best earning day was ${day}`,
+    })
+  }
+
+  if (current.profitPerHour > 0) {
+    insights.push({
+      id: 'per-hour',
+      tone: 'neutral',
+      text: `You earned about RM${Math.round(current.profitPerHour)} per driving hour`,
     })
   }
 
@@ -241,13 +263,7 @@ export function buildGrabInsights(
       tone: 'neutral',
       text: 'Log a driving day to see performance insights',
     })
-  } else if (insights.length === 0) {
-    insights.push({
-      id: 'steady',
-      tone: 'neutral',
-      text: 'Keep logging daily — small costs add up fast',
-    })
   }
 
-  return insights.slice(0, 3)
+  return insights.slice(0, 4)
 }

@@ -24,6 +24,7 @@ export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: 'utilities', label: 'Utilities' },
   { value: 'entertainment', label: 'Entertainment' },
   { value: 'shopping', label: 'Shopping' },
+  { value: 'investment', label: 'Investment' },
   { value: 'others', label: 'Others' },
 ]
 
@@ -70,3 +71,21 @@ export const STATUS_LABELS = {
   warning: 'Warning',
   critical: 'Critical',
 } as const
+
+export const RUNWAY_LABELS = {
+  safe: 'Safe',
+  improve: 'Need improvement',
+  risk: 'Risk',
+} as const
+
+export const ALLOCATION_LABELS: Record<
+  'needs' | 'savings' | 'investment' | 'lifestyle',
+  string
+> = {
+  needs: 'Needs',
+  savings: 'Savings',
+  investment: 'Investment',
+  lifestyle: 'Lifestyle',
+}
+
+export const APP_VERSION = '1.5'

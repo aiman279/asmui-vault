@@ -3,8 +3,8 @@ import { EmptyState } from '../components/EmptyState'
 import { ProgressBar } from '../components/ProgressBar'
 import { useFinance } from '../hooks/useFinance'
 import type { Goal } from '../types'
-import { goalProgress } from '../utils/calculations'
 import { formatDate, formatMoney, formatPercent } from '../utils/format'
+import { goalMilestone } from '../utils/v15'
 
 const emptyForm = {
   name: '',
@@ -71,7 +71,7 @@ export function GoalsPage() {
       <section className="page-header">
         <div>
           <h1>Goals</h1>
-          <p className="muted">Emergency fund, house, and personal targets.</p>
+          <p className="muted">Am I making progress toward what matters?</p>
         </div>
         <button
           type="button"
@@ -81,10 +81,7 @@ export function GoalsPage() {
               setOpen(false)
             } else {
               setEditingId(null)
-              setForm({
-                ...emptyForm,
-                targetDate: `${new Date().getFullYear() + 1}-12-31`,
-              })
+              setForm(emptyForm)
               setOpen(true)
             }
           }}
@@ -100,7 +97,6 @@ export function GoalsPage() {
             Goal name
             <input
               type="text"
-              placeholder="e.g. Emergency Fund"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               required
@@ -156,44 +152,60 @@ export function GoalsPage() {
         </form>
       ) : null}
 
-      <section className="stack stack--tight">
-        {state.goals.length === 0 ? (
-          <div className="panel">
-            <EmptyState
-              title="No goals yet"
-              description="Set a simple target to build saving momentum."
-            />
-          </div>
-        ) : (
-          state.goals.map((goal) => {
-            const progress = goalProgress(goal)
-            return (
-              <article key={goal.id} className="panel goal-card">
-                <div className="panel__head">
-                  <h2>{goal.name}</h2>
-                  <span className="badge">{formatPercent(progress)}</span>
+      {state.goals.length === 0 ? (
+        <EmptyState
+          title="No goals yet"
+          description="Set an emergency fund, house fund, or investment target."
+        />
+      ) : (
+        state.goals.map((goal) => {
+          const m = goalMilestone(goal)
+          return (
+            <section key={goal.id} className="panel goal-card">
+              <div className="panel__head">
+                <h2>{goal.name}</h2>
+                <span className="badge">{formatPercent(m.progress)}</span>
+              </div>
+              <p className="panel__amount">
+                {formatMoney(goal.currentAmount)}
+                <span> of {formatMoney(goal.targetAmount)}</span>
+              </p>
+              <ProgressBar value={m.progress} />
+              <div className="goal-milestone">
+                <div className="summary-row">
+                  <span>Next milestone</span>
+                  <strong>{formatMoney(m.nextMilestone)}</strong>
                 </div>
-                <p className="panel__amount">
-                  {formatMoney(goal.currentAmount)}
-                  <span> of {formatMoney(goal.targetAmount)}</span>
-                </p>
-                <ProgressBar value={progress} />
-                <p className="muted goal-card__date">
-                  Target: {formatDate(goal.targetDate)}
-                </p>
-                <div className="entry__actions">
-                  <button type="button" onClick={() => startEdit(goal)}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => deleteGoal(goal.id)}>
-                    Delete
-                  </button>
+                <div className="summary-row">
+                  <span>Remaining to milestone</span>
+                  <strong>{formatMoney(m.remainingToMilestone)}</strong>
                 </div>
-              </article>
-            )
-          })
-        )}
-      </section>
+                <div className="summary-row">
+                  <span>Estimated completion</span>
+                  <strong>
+                    {m.estimatedMonths === null
+                      ? '—'
+                      : m.estimatedMonths === 0
+                        ? 'Done'
+                        : `~${m.estimatedMonths} month${m.estimatedMonths === 1 ? '' : 's'}`}
+                  </strong>
+                </div>
+                <p className="muted" style={{ marginTop: 8 }}>
+                  Target date {formatDate(goal.targetDate)}
+                </p>
+              </div>
+              <div className="entry__actions" style={{ marginTop: 12 }}>
+                <button type="button" onClick={() => startEdit(goal)}>
+                  Edit
+                </button>
+                <button type="button" onClick={() => deleteGoal(goal.id)}>
+                  Delete
+                </button>
+              </div>
+            </section>
+          )
+        })
+      )}
     </div>
   )
 }

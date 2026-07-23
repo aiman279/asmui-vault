@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { ComparePill } from '../components/ComparePill'
 import { MiniBars } from '../components/MiniBars'
+import { PieChart } from '../components/PieChart'
 import { ProgressBar } from '../components/ProgressBar'
 import { StatCard } from '../components/StatCard'
-import { CATEGORY_LABELS, STATUS_LABELS } from '../constants'
+import { ALLOCATION_LABELS, CATEGORY_LABELS, STATUS_LABELS } from '../constants'
 import { useFinance } from '../hooks/useFinance'
 import {
   availableBalance,
@@ -12,17 +13,21 @@ import {
   currentMonthKey,
   emergencyFundGoal,
   filterByMonth,
-  financialStatus,
   goalProgress,
   monthIncomeBreakdown,
   previousMonthKey,
-  runwayMonths,
   totalCommitments,
   wealthTotals,
 } from '../utils/calculations'
 import { formatMoney, formatMonthLabel, formatPercent } from '../utils/format'
 import { summarizeGrabMonth } from '../utils/grab'
 import { buildInsights } from '../utils/insights'
+import {
+  allocationPercents,
+  comfortableRunway,
+  financialHealthScore,
+  moneyAllocation,
+} from '../utils/v15'
 
 const BALANCE_HIDDEN_KEY = 'aflow-balance-hidden'
 
@@ -58,14 +63,17 @@ export function Dashboard() {
   const prevSavingRate =
     prevIncome.total > 0 ? (prevSavings / prevIncome.total) * 100 : 0
   const balance = availableBalance(state)
-  const { status, reasons } = financialStatus(state)
+  const health = financialHealthScore(state)
+  const allocation = moneyAllocation(state, month)
+  const allocPct = allocationPercents(allocation)
   const emergency = emergencyFundGoal(state.goals)
   const otherGoals = state.goals.filter((g) => g.id !== emergency?.id).slice(0, 2)
   const totals = categoryTotals(expenses)
   const maxCat = Math.max(...Object.values(totals), 1)
   const chartItems = Object.entries(totals)
     .map(([category, value]) => ({
-      label: CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS],
+      label:
+        CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] ?? category,
       value: value ?? 0,
       max: maxCat,
     }))
@@ -76,7 +84,7 @@ export function Dashboard() {
   const committed = totalCommitments(state.commitments)
   const grabSummary = summarizeGrabMonth(state.grabRecords ?? [], month)
   const netWorth = wealthTotals(state.wealthItems ?? []).netWorth
-  const runway = runwayMonths(state, 'realistic')
+  const runway = comfortableRunway(state)
 
   return (
     <div className="stack">
@@ -88,24 +96,37 @@ export function Dashboard() {
             className="balance-toggle"
             onClick={() => setBalanceHidden((v) => !v)}
             aria-label={balanceHidden ? 'Show balance' : 'Hide balance'}
-            title={balanceHidden ? 'Show balance' : 'Hide balance'}
           >
             {balanceHidden ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        <h1 className="hero-balance__label">Available balance</h1>
+        <h1 className="hero-balance__label">How much money do I have?</h1>
         <p className="hero-balance__value">
           {balanceHidden ? '••••••' : formatMoney(balance)}
         </p>
         <p className="hero-balance__sub">
-          After commitments
-          {balanceHidden ? '' : `: ${formatMoney(committed)} reserved`}
+          Available after spending
+          {balanceHidden || committed === 0
+            ? ''
+            : ` · ${formatMoney(committed)} fixed outflows`}
         </p>
-        <div className={`status-pill status-pill--${status}`}>
-          <span className="status-pill__dot" aria-hidden="true" />
-          {STATUS_LABELS[status]}
+
+        <div className={`health-score health-score--${health.status}`}>
+          <div className="health-score__top">
+            <span className="health-score__label">A.FLOW STATUS</span>
+            <span className={`status-pill status-pill--${health.status}`}>
+              <span className="status-pill__dot" aria-hidden="true" />
+              {STATUS_LABELS[health.status]}
+            </span>
+          </div>
+          <p className="health-score__value">
+            {health.score}
+            <span> / 100</span>
+          </p>
+          <ProgressBar value={health.score} label="Financial health" />
+          <p className="muted health-score__blurb">{health.blurb}</p>
         </div>
-        <p className="muted status-pill__reason">{reasons[0]}</p>
+
         <div className="quick-actions">
           <Link to="/grab" className="btn btn--primary">
             Log Grab
@@ -149,38 +170,96 @@ export function Dashboard() {
             <ComparePill current={savingRate} previous={prevSavingRate} />
           </StatCard>
         </div>
-        <div className="income-split">
-          <div className="income-split__row">
-            <span>Salary</span>
-            <strong>{formatMoney(income.salary)}</strong>
-          </div>
-          <div className="income-split__row">
-            <span>Grab income</span>
-            <strong>{formatMoney(income.grab)}</strong>
-          </div>
-          <div className="income-split__row">
-            <span>Other income</span>
-            <strong>{formatMoney(income.other)}</strong>
-          </div>
+      </section>
+
+      <section className="panel reveal delay-1">
+        <div className="panel__head">
+          <h2>Where income goes</h2>
+        </div>
+        <p className="allocation-income">
+          Monthly income{' '}
+          <strong>{formatMoney(allocation.income)}</strong>
+        </p>
+        <PieChart
+          title=""
+          baseTotal={Math.max(allocation.income, 1)}
+          centerValue={
+            allocation.income > 0 ? `${allocPct.savings}%` : '—'
+          }
+          centerLabel="Saved"
+          slices={[
+            {
+              label: ALLOCATION_LABELS.needs,
+              amount: allocation.needs,
+              color: '#0d6e5f',
+            },
+            {
+              label: ALLOCATION_LABELS.savings,
+              amount: allocation.savings,
+              color: '#1a9a6c',
+            },
+            {
+              label: ALLOCATION_LABELS.lifestyle,
+              amount: allocation.lifestyle,
+              color: '#e0a83a',
+            },
+            {
+              label: ALLOCATION_LABELS.investment,
+              amount: allocation.investment,
+              color: '#5b8def',
+            },
+          ]}
+        />
+        <div className="alloc-bars">
+          {(
+            [
+              ['needs', allocation.needs, allocPct.needs],
+              ['savings', allocation.savings, allocPct.savings],
+              ['lifestyle', allocation.lifestyle, allocPct.lifestyle],
+              ['investment', allocation.investment, allocPct.investment],
+            ] as const
+          ).map(([key, amount, pct]) => (
+            <div key={key} className="alloc-bars__row">
+              <div className="alloc-bars__meta">
+                <span>{ALLOCATION_LABELS[key]}</span>
+                <span>
+                  {pct}% · {formatMoney(amount)}
+                </span>
+              </div>
+              <div className="alloc-bars__track">
+                <div
+                  className={`alloc-bars__fill alloc-bars__fill--${key}`}
+                  style={{ width: `${Math.min(100, pct)}%` }}
+                />
+              </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section className="panel grab-performance reveal delay-1">
+      <section className="panel grab-performance reveal delay-2">
         <div className="panel__head">
-          <h2>Grab this month</h2>
+          <h2>Is side income worth my time?</h2>
           <Link to="/grab" className="text-link">
-            Open tracker
+            Grab
           </Link>
         </div>
         <p className="grab-performance__profit">
           {formatMoney(grabSummary.netProfit)}
         </p>
-        <p className="muted grab-performance__caption">Net profit after costs</p>
+        <p className="muted grab-performance__caption">
+          Net profit
+          {grabSummary.profitPerHour > 0
+            ? ` · ${formatMoney(grabSummary.profitPerHour)}/hour`
+            : ''}
+        </p>
         <div className="grab-performance__grid">
           <div>
-            <p className="grab-performance__label">Gross</p>
+            <p className="grab-performance__label">Hours</p>
             <p className="grab-performance__value">
-              {formatMoney(grabSummary.grossEarnings)}
+              {grabSummary.drivingHours > 0
+                ? `${grabSummary.drivingHours.toFixed(1)}h`
+                : '—'}
             </p>
           </div>
           <div>
@@ -198,7 +277,7 @@ export function Dashboard() {
 
       <section className="stat-grid reveal delay-2">
         <StatCard
-          label="Net worth"
+          label="Am I wealthier?"
           value={balanceHidden ? '••••' : formatMoney(netWorth)}
           tone={netWorth >= 0 ? 'positive' : 'negative'}
         >
@@ -207,39 +286,35 @@ export function Dashboard() {
           </Link>
         </StatCard>
         <StatCard
-          label="Runway"
-          value={runway >= 99 ? '99+ mo' : `${runway.toFixed(1)} mo`}
+          label="Can I survive?"
+          value={
+            runway.months >= 99 ? '99+ mo' : `${runway.months.toFixed(1)} mo`
+          }
         >
           <Link to="/wealth" className="text-link">
-            Details
+            Runway
           </Link>
         </StatCard>
       </section>
 
       {emergency ? (
-        <section className="panel reveal delay-2">
+        <section className="panel reveal delay-3">
           <div className="panel__head">
-            <h2>Emergency fund</h2>
+            <h2>Am I making progress?</h2>
             <Link to="/goals" className="text-link">
-              View goals
+              Goals
             </Link>
           </div>
           <p className="panel__amount">
             {formatMoney(emergency.currentAmount)}
             <span> of {formatMoney(emergency.targetAmount)}</span>
           </p>
-          <ProgressBar value={goalProgress(emergency)} label="Progress" />
+          <ProgressBar value={goalProgress(emergency)} label="Emergency fund" />
         </section>
       ) : null}
 
       {otherGoals.length > 0 ? (
-        <section className="panel reveal delay-2">
-          <div className="panel__head">
-            <h2>Goal progress</h2>
-            <Link to="/goals" className="text-link">
-              All goals
-            </Link>
-          </div>
+        <section className="panel reveal delay-3">
           <div className="goal-list">
             {otherGoals.map((goal) => (
               <div key={goal.id} className="goal-row">
@@ -257,9 +332,6 @@ export function Dashboard() {
       <section className="panel reveal delay-3">
         <div className="panel__head">
           <h2>Spending snapshot</h2>
-          <Link to="/expenses" className="text-link">
-            Expenses
-          </Link>
         </div>
         <MiniBars items={chartItems} />
       </section>
@@ -290,14 +362,7 @@ function EyeIcon() {
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
-      <circle
-        cx="12"
-        cy="12"
-        r="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
     </svg>
   )
 }

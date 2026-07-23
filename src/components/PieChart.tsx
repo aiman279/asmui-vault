@@ -6,7 +6,7 @@ interface PieSlice {
 }
 
 interface PieChartProps {
-  title: string
+  title?: string
   slices: PieSlice[]
   /** Denominator for legend percentages (usually gross earnings) */
   baseTotal: number
@@ -30,7 +30,7 @@ export function PieChart({
 
   return (
     <div className="pie-chart">
-      <h2 className="pie-chart__title">{title}</h2>
+      {title ? <h2 className="pie-chart__title">{title}</h2> : null}
       <div className="pie-chart__body">
         <div
           className="pie-chart__ring"

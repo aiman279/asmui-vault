@@ -21,7 +21,7 @@ import type {
   WealthSnapshot,
 } from '../types'
 import { todayISO, uid } from '../utils/format'
-import { wealthTotals } from '../utils/calculations'
+import { currentMonthKey, wealthTotals } from '../utils/calculations'
 
 interface FinanceContextValue {
   state: FinanceState
@@ -44,6 +44,8 @@ interface FinanceContextValue {
   deleteWealthItem: (id: string) => void
   recordWealthSnapshot: () => void
   clearAllData: () => void
+  importBackup: (raw: string) => { ok: true } | { ok: false; error: string }
+  exportBackup: () => string
 }
 
 const FinanceContext = createContext<FinanceContextValue | null>(null)
@@ -59,6 +61,7 @@ function migrateExpenseCategory(category: string): ExpenseCategory {
     'utilities',
     'entertainment',
     'shopping',
+    'investment',
     'others',
   ]
   return allowed.includes(category as ExpenseCategory)
@@ -66,31 +69,150 @@ function migrateExpenseCategory(category: string): ExpenseCategory {
     : 'others'
 }
 
-function normalizeState(parsed: Partial<FinanceState>): FinanceState | null {
-  if (
-    !parsed ||
-    !Array.isArray(parsed.incomes) ||
-    !Array.isArray(parsed.expenses) ||
-    !Array.isArray(parsed.goals) ||
-    !Array.isArray(parsed.commitments)
-  ) {
-    return null
+/** Clean paste from WhatsApp / Notes / prompt() */
+export function sanitizeBackupRaw(raw: string): string {
+  let text = raw.trim()
+  text = text.replace(/^\uFEFF/, '')
+  text = text.replace(/[\u201C\u201D\u201E\u201F\u2033\u2036]/g, '"')
+  text = text.replace(/[\u2018\u2019\u201A\u201B]/g, "'")
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  if (start !== -1 && end !== -1 && end > start) {
+    text = text.slice(start, end + 1)
   }
+  return text
+}
+
+function normalizeCommitment(raw: Record<string, unknown>): Commitment {
+  return {
+    id: String(raw.id ?? uid()),
+    name: String(raw.name ?? 'Commitment'),
+    amount: Number(raw.amount) || 0,
+    direction: raw.direction === 'in' ? 'in' : 'out',
+    dayOfMonth: Math.min(
+      28,
+      Math.max(1, Number(raw.dayOfMonth) || 1),
+    ),
+    category: raw.category
+      ? migrateExpenseCategory(String(raw.category))
+      : 'others',
+    source:
+      raw.source === 'salary' || raw.source === 'side' || raw.source === 'other'
+        ? raw.source
+        : 'salary',
+  }
+}
+
+function normalizeGrab(raw: Record<string, unknown>): GrabRecord {
+  return {
+    id: String(raw.id ?? uid()),
+    date: String(raw.date ?? todayISO()),
+    grossEarnings: Number(raw.grossEarnings) || 0,
+    petrolCost: Number(raw.petrolCost) || 0,
+    otherCost: Number(raw.otherCost) || 0,
+    credit: Number(raw.credit) || 0,
+    drivingHours: Number(raw.drivingHours) || 0,
+    notes: String(raw.notes ?? ''),
+  }
+}
+
+function normalizeState(parsed: Partial<FinanceState>): FinanceState | null {
+  if (!parsed || typeof parsed !== 'object') return null
+
+  const incomes = Array.isArray(parsed.incomes) ? parsed.incomes : null
+  const expenses = Array.isArray(parsed.expenses) ? parsed.expenses : null
+  if (!incomes || !expenses) return null
 
   return {
-    incomes: parsed.incomes,
-    expenses: parsed.expenses.map((e) => ({
+    incomes: incomes.map((i) => ({
+      ...i,
+      recurringId: i.recurringId,
+    })),
+    expenses: expenses.map((e) => ({
       ...e,
       category: migrateExpenseCategory(e.category as string),
+      recurringId: e.recurringId,
     })),
-    goals: parsed.goals,
-    commitments: parsed.commitments,
-    grabRecords: Array.isArray(parsed.grabRecords) ? parsed.grabRecords : [],
+    goals: Array.isArray(parsed.goals) ? parsed.goals : [],
+    commitments: Array.isArray(parsed.commitments)
+      ? parsed.commitments.map((c) =>
+          normalizeCommitment(c as unknown as Record<string, unknown>),
+        )
+      : [],
+    grabRecords: Array.isArray(parsed.grabRecords)
+      ? parsed.grabRecords.map((g) =>
+          normalizeGrab(g as unknown as Record<string, unknown>),
+        )
+      : [],
     wealthItems: Array.isArray(parsed.wealthItems) ? parsed.wealthItems : [],
     wealthSnapshots: Array.isArray(parsed.wealthSnapshots)
       ? parsed.wealthSnapshots
       : [],
   }
+}
+
+/** Post recurring salary / bills for the current month once */
+export function applyRecurringForMonth(
+  state: FinanceState,
+  monthKey = currentMonthKey(),
+): FinanceState {
+  let incomes = [...state.incomes]
+  let expenses = [...state.expenses]
+  let changed = false
+
+  for (const c of state.commitments ?? []) {
+    const day = String(Math.min(28, Math.max(1, c.dayOfMonth || 1))).padStart(
+      2,
+      '0',
+    )
+    const date = `${monthKey}-${day}`
+
+    if (c.direction === 'in') {
+      if (
+        incomes.some(
+          (i) => i.recurringId === c.id && i.date.startsWith(monthKey),
+        )
+      ) {
+        continue
+      }
+      incomes = [
+        {
+          id: uid(),
+          date,
+          source: c.source ?? 'salary',
+          amount: c.amount,
+          notes: `Auto · ${c.name}`,
+          recurringId: c.id,
+        },
+        ...incomes,
+      ]
+      changed = true
+    } else {
+      if (
+        expenses.some(
+          (e) => e.recurringId === c.id && e.date.startsWith(monthKey),
+        )
+      ) {
+        continue
+      }
+      expenses = [
+        {
+          id: uid(),
+          date,
+          category: c.category ?? 'others',
+          amount: c.amount,
+          paymentMethod: 'bank',
+          notes: `Auto · ${c.name}`,
+          recurringId: c.id,
+        },
+        ...expenses,
+      ]
+      changed = true
+    }
+  }
+
+  if (!changed) return state
+  return { ...state, incomes, expenses }
 }
 
 function loadState(): FinanceState {
@@ -107,7 +229,8 @@ function loadState(): FinanceState {
     }
     if (!raw) return createEmptyState()
     const parsed = JSON.parse(raw) as Partial<FinanceState>
-    return normalizeState(parsed) ?? createEmptyState()
+    const normalized = normalizeState(parsed) ?? createEmptyState()
+    return applyRecurringForMonth(normalized)
   } catch {
     return createEmptyState()
   }
@@ -119,6 +242,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
+
+  // Re-apply recurrings when month rolls over while app stays open
+  useEffect(() => {
+    setState((prev) => applyRecurringForMonth(prev))
+  }, [])
 
   const addIncome = useCallback((data: Omit<Income, 'id'>) => {
     setState((prev) => ({
@@ -190,20 +318,26 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addCommitment = useCallback((data: Omit<Commitment, 'id'>) => {
-    setState((prev) => ({
-      ...prev,
-      commitments: [...prev.commitments, { ...data, id: uid() }],
-    }))
+    setState((prev) => {
+      const next = {
+        ...prev,
+        commitments: [...prev.commitments, { ...data, id: uid() }],
+      }
+      return applyRecurringForMonth(next)
+    })
   }, [])
 
   const updateCommitment = useCallback(
     (id: string, data: Omit<Commitment, 'id'>) => {
-      setState((prev) => ({
-        ...prev,
-        commitments: prev.commitments.map((item) =>
-          item.id === id ? { ...data, id } : item,
-        ),
-      }))
+      setState((prev) => {
+        const next = {
+          ...prev,
+          commitments: prev.commitments.map((item) =>
+            item.id === id ? { ...data, id } : item,
+          ),
+        }
+        return applyRecurringForMonth(next)
+      })
     },
     [],
   )
@@ -322,6 +456,38 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     persistAndSet(createEmptyState())
   }, [persistAndSet])
 
+  const exportBackup = useCallback(() => JSON.stringify(state), [state])
+
+  const importBackup = useCallback(
+    (raw: string): { ok: true } | { ok: false; error: string } => {
+      try {
+        const cleaned = sanitizeBackupRaw(raw)
+        if (!cleaned.startsWith('{')) {
+          return {
+            ok: false,
+            error: 'Paste the full backup text (must start with { )',
+          }
+        }
+        const parsed = JSON.parse(cleaned) as Partial<FinanceState>
+        const next = normalizeState(parsed)
+        if (!next) {
+          return {
+            ok: false,
+            error: 'Backup incomplete — need incomes & expenses lists',
+          }
+        }
+        persistAndSet(next)
+        return { ok: true }
+      } catch {
+        return {
+          ok: false,
+          error: 'Invalid backup — WhatsApp may have cut the text. Try Notes.',
+        }
+      }
+    },
+    [persistAndSet],
+  )
+
   const value = useMemo(
     () => ({
       state,
@@ -344,6 +510,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       deleteWealthItem,
       recordWealthSnapshot,
       clearAllData,
+      importBackup,
+      exportBackup,
     }),
     [
       state,
@@ -366,6 +534,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       deleteWealthItem,
       recordWealthSnapshot,
       clearAllData,
+      importBackup,
+      exportBackup,
     ],
   )
 

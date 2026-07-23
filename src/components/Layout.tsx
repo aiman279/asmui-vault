@@ -19,7 +19,7 @@ export function Layout() {
             <span className="brand__mark" aria-hidden="true" />
             <div>
               <p className="brand__name">A.FLOW</p>
-              <p className="brand__tag">Personal financial flow</p>
+              <p className="brand__tag">Track less. Understand more.</p>
             </div>
           </div>
           <ThemeToggle />

@@ -33,6 +33,7 @@ const emptyForm = {
   petrolCost: '',
   otherCost: '',
   credit: '',
+  drivingHours: '',
   notes: '',
 }
 
@@ -114,6 +115,7 @@ export function GrabPage() {
       petrolCost: String(item.petrolCost),
       otherCost: String(item.otherCost),
       credit: String(item.credit),
+      drivingHours: String(item.drivingHours || ''),
       notes: item.notes,
     })
     setFormOpen(true)
@@ -138,6 +140,7 @@ export function GrabPage() {
       petrolCost: Math.max(0, parseAmount(form.petrolCost)),
       otherCost: Math.max(0, parseAmount(form.otherCost)),
       credit: Math.max(0, parseAmount(form.credit)),
+      drivingHours: Math.max(0, parseAmount(form.drivingHours)),
       notes: form.notes.trim(),
     }
 
@@ -160,6 +163,7 @@ export function GrabPage() {
             {item.petrolCost > 0 ? ` · Gas ${formatMoney(item.petrolCost)}` : ''}
             {item.otherCost > 0 ? ` · Other ${formatMoney(item.otherCost)}` : ''}
             {item.credit > 0 ? ` · Credit ${formatMoney(item.credit)}` : ''}
+            {item.drivingHours > 0 ? ` · ${item.drivingHours}h` : ''}
             {item.notes ? ` · ${item.notes}` : ''}
           </p>
         </div>
@@ -187,7 +191,7 @@ export function GrabPage() {
   function renderTrackView(
     summary: typeof weekSummary,
     label: string,
-    profitTitle: string,
+    _profitTitle: string,
     records: GrabRecord[],
     mode: 'week' | 'month',
   ) {
@@ -197,41 +201,50 @@ export function GrabPage() {
       <>
         <section className="grab-hero panel">
           <p className="eyebrow">{label}</p>
-          <p className="grab-hero__label">{profitTitle}</p>
+          <p className="grab-hero__label">GRAB PERFORMANCE</p>
           <p className="grab-hero__value">{formatMoney(summary.netProfit)}</p>
           <p className="muted">
-            From daily logs — after petrol, other cost, and credit.
+            Net after petrol, other cost, and credit
+            {summary.profitPerHour > 0
+              ? ` · ${formatMoney(summary.profitPerHour)}/hour`
+              : ''}
           </p>
         </section>
 
         <section className="stat-grid numbers-grid">
           <StatCard
-            label="Best Earning Day"
-            value={
-              summary.bestDay
-                ? formatMoney(grabNetProfit(summary.bestDay))
-                : '—'
-            }
-            tone="positive"
-          >
-            {summary.bestDay ? (
-              <span className="stat-card__note">
-                {formatDate(summary.bestDay.date)}
-              </span>
-            ) : (
-              <span className="stat-card__note">No days yet</span>
-            )}
-          </StatCard>
-          <StatCard
-            label="Average Profit Per Day"
-            value={formatMoney(summary.averageDailyProfit)}
-          />
-          <StatCard label="Days Active" value={String(summary.drivingDays)} />
-          <StatCard
-            label="Total Gross"
+            label="Gross"
             value={formatMoney(summary.grossEarnings)}
             tone="positive"
           />
+          <StatCard
+            label="Petrol"
+            value={formatMoney(summary.petrolCost)}
+            tone="negative"
+          />
+          <StatCard
+            label="Net Profit"
+            value={formatMoney(summary.netProfit)}
+            tone={summary.netProfit >= 0 ? 'positive' : 'negative'}
+          />
+          <StatCard
+            label="Driving Hours"
+            value={
+              summary.drivingHours > 0
+                ? `${summary.drivingHours.toFixed(1)}h`
+                : '—'
+            }
+          />
+          <StatCard
+            label="Profit / Hour"
+            value={
+              summary.profitPerHour > 0
+                ? formatMoney(summary.profitPerHour)
+                : '—'
+            }
+            tone="positive"
+          />
+          <StatCard label="Days Active" value={String(summary.drivingDays)} />
         </section>
 
         <section className="panel">
@@ -486,6 +499,20 @@ export function GrabPage() {
                   value={form.credit}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, credit: e.target.value }))
+                  }
+                />
+              </label>
+              <label>
+                Driving Hours
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  inputMode="decimal"
+                  placeholder="8"
+                  value={form.drivingHours}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, drivingHours: e.target.value }))
                   }
                 />
               </label>

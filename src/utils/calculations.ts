@@ -124,7 +124,15 @@ export function monthIncomeBreakdown(
 }
 
 export function totalCommitments(commitments: Commitment[]): number {
-  return sumAmounts(commitments)
+  return commitments
+    .filter((c) => (c.direction ?? 'out') === 'out')
+    .reduce((s, c) => s + c.amount, 0)
+}
+
+export function totalIncomeCommitments(commitments: Commitment[]): number {
+  return commitments
+    .filter((c) => c.direction === 'in')
+    .reduce((s, c) => s + c.amount, 0)
 }
 
 export function goalProgress(goal: Goal): number {
@@ -138,12 +146,21 @@ export function emergencyFundGoal(goals: Goal[]): Goal | undefined {
 
 export function availableBalance(state: FinanceState): number {
   const grabNet = grabRecordsNet(state.grabRecords ?? [])
-  const committed = totalCommitments(state.commitments ?? [])
+  // Recurring outflows are posted as expenses; only reserve unposted legacy outs
+  const postedIds = new Set(
+    (state.expenses ?? [])
+      .map((e) => e.recurringId)
+      .filter(Boolean) as string[],
+  )
+  const unpostedOut = (state.commitments ?? [])
+    .filter((c) => (c.direction ?? 'out') === 'out' && !postedIds.has(c.id))
+    .reduce((s, c) => s + c.amount, 0)
+
   return (
     sumAmounts(state.incomes) -
     sumAmounts(state.expenses) +
     grabNet -
-    committed
+    unpostedOut
   )
 }
 

@@ -4,6 +4,7 @@ import { ProgressBar } from '../components/ProgressBar'
 import {
   ASSET_CATEGORIES,
   LIABILITY_CATEGORIES,
+  RUNWAY_LABELS,
 } from '../constants'
 import { useFinance } from '../hooks/useFinance'
 import type {
@@ -13,14 +14,20 @@ import type {
 } from '../types'
 import {
   filterSnapshots,
-  liquidMoney,
-  runwayMonths,
   wealthTotals,
-  type RunwayScenario,
 } from '../utils/calculations'
 import { formatMoney, formatPercent } from '../utils/format'
+import { comfortableRunway, survivalRunway } from '../utils/v15'
 
 type Range = '1m' | '3m' | '1y' | 'all'
+
+function runwayStatus(
+  level: 'safe' | 'improve' | 'risk',
+): 'healthy' | 'warning' | 'critical' {
+  if (level === 'safe') return 'healthy'
+  if (level === 'improve') return 'warning'
+  return 'critical'
+}
 
 const emptyAsset = {
   category: 'cash' as AssetCategory,
@@ -40,23 +47,28 @@ export function WealthPage() {
     recordWealthSnapshot,
   } = useFinance()
   const [range, setRange] = useState<Range>('3m')
-  const [scenario, setScenario] = useState<RunwayScenario>('realistic')
   const [assetForm, setAssetForm] = useState(emptyAsset)
   const [liabilityForm, setLiabilityForm] = useState(emptyLiability)
   const [editing, setEditing] = useState<WealthItem | null>(null)
 
   const items = state.wealthItems ?? []
   const totals = wealthTotals(items)
-  const liquid = liquidMoney(items)
-  const runway = runwayMonths(state, scenario)
+  const survival = survivalRunway(state)
+  const comfortable = comfortableRunway(state)
   const snapshots = useMemo(
     () => filterSnapshots(state.wealthSnapshots ?? [], range),
     [state.wealthSnapshots, range],
   )
 
+  const first = snapshots[0]
+  const last = snapshots[snapshots.length - 1]
   const change =
+    snapshots.length >= 2 ? last.netWorth - first.netWorth : null
+  const assetChange =
+    snapshots.length >= 2 ? last.totalAssets - first.totalAssets : null
+  const liabilityChange =
     snapshots.length >= 2
-      ? snapshots[snapshots.length - 1].netWorth - snapshots[0].netWorth
+      ? last.totalLiabilities - first.totalLiabilities
       : null
 
   const assets = items.filter((i) => i.kind === 'asset')
@@ -178,6 +190,45 @@ export function WealthPage() {
                   ? `Your net worth increased by ${formatMoney(change)}`
                   : `Your net worth decreased by ${formatMoney(Math.abs(change))}`}
             </p>
+            {snapshots.length >= 2 ? (
+              <div className="summary-rows" style={{ marginBottom: 12 }}>
+                <div className="summary-row">
+                  <span>Asset growth</span>
+                  <strong
+                    className={
+                      (assetChange ?? 0) >= 0 ? 'text-positive' : 'text-danger'
+                    }
+                  >
+                    {(assetChange ?? 0) >= 0 ? '+' : ''}
+                    {formatMoney(assetChange ?? 0)}
+                  </strong>
+                </div>
+                <div className="summary-row">
+                  <span>Liability change</span>
+                  <strong
+                    className={
+                      (liabilityChange ?? 0) <= 0
+                        ? 'text-positive'
+                        : 'text-danger'
+                    }
+                  >
+                    {(liabilityChange ?? 0) > 0 ? '+' : ''}
+                    {formatMoney(liabilityChange ?? 0)}
+                  </strong>
+                </div>
+                {first && last ? (
+                  <div className="summary-row">
+                    <span>
+                      {first.date.slice(0, 7)} → {last.date.slice(0, 7)}
+                    </span>
+                    <strong>
+                      {formatMoney(first.netWorth)} →{' '}
+                      {formatMoney(last.netWorth)}
+                    </strong>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <div className="spark-bars">
               {snapshots.map((s) => (
                 <div key={s.id} className="spark-bars__col" title={s.date}>
@@ -196,45 +247,45 @@ export function WealthPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Financial runway</h2>
+          <h2>Can I survive if something happens?</h2>
         </div>
-        <p className="runway-value">
-          {runway >= 99 ? '99+' : runway.toFixed(1)} months
-        </p>
-        <p className="muted">
-          You can survive about{' '}
-          <strong>
-            {runway >= 99 ? '99+' : Math.floor(runway)} months
-          </strong>{' '}
-          without income (liquid {formatMoney(liquid)}).
-        </p>
-        <div className="segmented" style={{ marginTop: 14 }}>
-          {(
-            [
-              ['optimistic', 'Optimistic'],
-              ['realistic', 'Realistic'],
-              ['conservative', 'Careful'],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className={`segmented__btn${scenario === value ? ' is-active' : ''}`}
-              onClick={() => setScenario(value)}
+        <div className="runway-pair">
+          <div className={`runway-card runway-card--${survival.level}`}>
+            <p className="eyebrow">Survival runway</p>
+            <p className="runway-value">
+              {survival.months >= 99 ? '99+' : survival.months.toFixed(1)} mo
+            </p>
+            <p className="muted">
+              Cash only {formatMoney(survival.cash)} ÷ monthly spend
+            </p>
+            <span className={`status-pill status-pill--${runwayStatus(survival.level)}`}>
+              <span className="status-pill__dot" aria-hidden="true" />
+              {RUNWAY_LABELS[survival.level]}
+            </span>
+          </div>
+          <div className={`runway-card runway-card--${comfortable.level}`}>
+            <p className="eyebrow">Comfortable runway</p>
+            <p className="runway-value">
+              {comfortable.months >= 99
+                ? '99+'
+                : comfortable.months.toFixed(1)}{' '}
+              mo
+            </p>
+            <p className="muted">
+              Cash + ASB {formatMoney(comfortable.liquid)} ÷ monthly spend
+            </p>
+            <span
+              className={`status-pill status-pill--${runwayStatus(comfortable.level)}`}
             >
-              {label}
-            </button>
-          ))}
+              <span className="status-pill__dot" aria-hidden="true" />
+              {RUNWAY_LABELS[comfortable.level]}
+            </span>
+          </div>
         </div>
-        <p className="muted" style={{ marginTop: 10, fontSize: '0.82rem' }}>
-          {scenario === 'optimistic' && 'Assumes lower monthly spend.'}
-          {scenario === 'realistic' && 'Uses your current spending pattern.'}
-          {scenario === 'conservative' && 'Assumes higher monthly spend.'}
-        </p>
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 14 }}>
           <ProgressBar
-            value={Math.min(100, (runway / 6) * 100)}
-            label="Toward 6-month buffer"
+            value={Math.min(100, (comfortable.months / 6) * 100)}
+            label="Comfortable buffer toward 6 months"
           />
         </div>
       </section>
@@ -384,7 +435,7 @@ export function WealthPage() {
             <span className="muted" style={{ width: '100%', marginTop: 4 }}>
               Liquid share of assets:{' '}
               {totals.assets > 0
-                ? formatPercent((liquid / totals.assets) * 100)
+                ? formatPercent((comfortable.liquid / totals.assets) * 100)
                 : '0%'}
             </span>
           </div>

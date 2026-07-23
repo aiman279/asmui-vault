@@ -12,7 +12,7 @@ import {
   previousMonthKey,
 } from '../utils/calculations'
 import { formatMoney, formatMonthLabel, formatPercent } from '../utils/format'
-import { buildInsights } from '../utils/insights'
+import { buildMonthlyInsightLines } from '../utils/v15'
 
 export function SummaryPage() {
   const { state } = useFinance()
@@ -58,7 +58,7 @@ export function SummaryPage() {
           snapsInMonth[0].netWorth
         : null
 
-  const insights = buildInsights(state)
+  const insights = buildMonthlyInsightLines(state)
   const [year, monthNum] = month.split('-').map(Number)
 
   return (
@@ -188,16 +188,11 @@ export function SummaryPage() {
           <h2>Insights</h2>
         </div>
         <ul className="insights">
-          {insights.map((insight) => (
-            <li key={insight.id} className={`insight insight--${insight.tone}`}>
-              {insight.text}
+          {insights.map((text, i) => (
+            <li key={`${i}-${text.slice(0, 12)}`} className="insight insight--neutral">
+              {text}
             </li>
           ))}
-          {savings > prevSavings && prevExpenseTotal + prevIncome.total > 0 ? (
-            <li className="insight insight--positive">
-              Your savings increased compared to last month
-            </li>
-          ) : null}
         </ul>
       </section>
     </div>
