@@ -55,33 +55,68 @@ export function financialHealthScore(state: FinanceState): HealthScoreResult {
 
   const comfortable = comfortableRunway(state)
   const { assets, liabilities } = wealthTotals(state.wealthItems ?? [])
+  const grabCount = (state.grabRecords ?? []).length
+
+  const emptyParts = {
+    savingsRate: 0,
+    emergency: 0,
+    runway: 0,
+    debt: 0,
+    spending: 0,
+  }
+
+  // No real activity yet → score stays 0 (don't award “empty” bonus points)
+  const hasActivity =
+    income.total > 0 ||
+    expenses > 0 ||
+    grabCount > 0 ||
+    assets > 0 ||
+    liabilities > 0 ||
+    (emergency != null && emergency.currentAmount > 0)
+
+  if (!hasActivity) {
+    return {
+      score: 0,
+      status: 'warning',
+      parts: emptyParts,
+      blurbKey: 'default',
+    }
+  }
 
   // 1. Savings rate → /25 (20%+ = full)
-  const savingsRatePts = clamp((savingRate / 20) * 25, 0, 25)
+  const savingsRatePts =
+    income.total > 0 ? clamp((savingRate / 20) * 25, 0, 25) : 0
 
   // 2. Emergency → /25
   const emergencyPts = clamp((emergencyPct / 100) * 25, 0, 25)
 
   // 3. Runway → /20 (6 months = full)
-  const runwayPts = clamp((comfortable.months / 6) * 20, 0, 20)
+  const runwayPts =
+    assets > 0 || liabilities > 0
+      ? clamp((comfortable.months / 6) * 20, 0, 20)
+      : 0
 
-  // 4. Debt → /15 (no debt = full; debt ≥ assets = 0)
-  let debtPts = 15
-  if (assets <= 0 && liabilities > 0) debtPts = 0
-  else if (assets > 0) {
-    const ratio = liabilities / assets
-    debtPts = clamp((1 - ratio) * 15, 0, 15)
+  // 4. Debt → /15 (only score when wealth is tracked)
+  let debtPts = 0
+  if (assets > 0 || liabilities > 0) {
+    if (assets <= 0 && liabilities > 0) debtPts = 0
+    else if (assets > 0) {
+      const ratio = liabilities / assets
+      debtPts = clamp((1 - ratio) * 15, 0, 15)
+    } else {
+      debtPts = 15
+    }
   }
 
-  // 5. Spending control → /15 (flat or down = full; +25% = 0)
-  let spendingPts = 10
+  // 5. Spending control → /15 (needs expense history)
+  let spendingPts = 0
   if (prevExpenses > 0) {
     const change = (expenses - prevExpenses) / prevExpenses
     if (change <= 0) spendingPts = 15
     else if (change >= 0.25) spendingPts = 0
     else spendingPts = clamp((1 - change / 0.25) * 15, 0, 15)
-  } else if (expenses === 0) {
-    spendingPts = 12
+  } else if (expenses > 0) {
+    spendingPts = 8
   }
 
   const parts = {
