@@ -321,6 +321,29 @@ p {
   box-shadow: var(--shadow-lg);
 }
 
+/* .panel background must not wipe the green hero (same specificity otherwise) */
+.panel.hero-balance {
+  background: linear-gradient(145deg, var(--accent), var(--accent-deep));
+  color: var(--hero-text);
+  border-color: transparent;
+  backdrop-filter: none;
+}
+
+.panel.hero-balance .eyebrow,
+.panel.hero-balance .hero-balance__label,
+.panel.hero-balance .hero-balance__value,
+.panel.hero-balance .hero-balance__sub,
+.panel.hero-balance .summary-row,
+.panel.hero-balance .summary-row span,
+.panel.hero-balance .summary-row strong {
+  color: var(--hero-text);
+}
+
+.panel.hero-balance .text-positive,
+.panel.hero-balance .text-danger {
+  color: var(--hero-text);
+}
+
 .hero-balance__top {
   display: flex;
   align-items: center;
@@ -400,6 +423,26 @@ p {
   background: rgba(255, 255, 255, 0.12);
   color: var(--hero-text);
   border-color: rgba(255, 255, 255, 0.28);
+}
+
+/* Health score sits on light surface inside green hero — reset text color */
+.hero-balance .health-score {
+  color: var(--ink);
+}
+
+.hero-balance .health-score .muted,
+.hero-balance .health-score .health-score__blurb,
+.hero-balance .health-score .health-score__label,
+.hero-balance .health-score .progress__meta {
+  color: var(--muted);
+}
+
+.hero-balance .health-score .health-score__value {
+  color: var(--ink);
+}
+
+.hero-balance .health-score .health-score__value span {
+  color: var(--muted);
 }
 
 .stat-grid {
@@ -564,7 +607,8 @@ p {
 
 .mini-bars__label {
   font-size: 0.8rem;
-  color: var(--ink-soft);
+  color: var(--ink);
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -580,7 +624,7 @@ p {
 .mini-bars__fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #1a8a76, #0d6e5f);
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
   min-width: 4px;
   transition: width 0.4s ease;
 }
@@ -599,14 +643,22 @@ p {
   color: var(--accent-deep);
 }
 
+[data-theme='light'] .compare--up {
+  color: #0a574b;
+}
+
 .compare--down {
   background: var(--danger-soft);
   color: var(--danger);
 }
 
+[data-theme='light'] .compare--down {
+  color: #9a3d32;
+}
+
 .compare--flat {
   background: var(--track);
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
 .insights {
@@ -1232,10 +1284,11 @@ p {
 }
 
 .pie-chart__legend-label {
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .pie-chart__legend-value {
+  color: var(--ink-soft);
   font-weight: 700;
 }
 
@@ -1348,10 +1401,12 @@ p {
   gap: 10px;
   font-size: 0.84rem;
   margin-bottom: 6px;
+  color: var(--ink);
 }
 
 .alloc-bars__meta span:last-child {
-  color: var(--muted);
+  color: var(--ink-soft);
+  font-weight: 500;
 }
 
 .alloc-bars__track {
