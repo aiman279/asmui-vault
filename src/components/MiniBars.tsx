@@ -1,10 +1,14 @@
+import { useLanguage } from '../hooks/useLanguage'
+
 interface MiniBarsProps {
   items: { label: string; value: number; max: number }[]
 }
 
 export function MiniBars({ items }: MiniBarsProps) {
+  const { t } = useLanguage()
+
   if (items.length === 0) {
-    return <p className="muted">No spending data yet</p>
+    return <p className="muted">{t('dash.noSpending')}</p>
   }
 
   return (

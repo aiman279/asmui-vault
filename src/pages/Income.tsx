@@ -1,7 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { EmptyState } from '../components/EmptyState'
-import { INCOME_SOURCES, SOURCE_LABELS } from '../constants'
+import { INCOME_SOURCES } from '../constants'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 import type { Income, IncomeSource } from '../types'
 import { formatDate, formatMoney, todayISO } from '../utils/format'
 
@@ -14,6 +16,7 @@ const emptyForm = {
 
 export function IncomePage() {
   const { state, addIncome, updateIncome, deleteIncome } = useFinance()
+  const { t } = useLanguage()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -61,10 +64,8 @@ export function IncomePage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Income</h1>
-          <p className="muted">
-            Log salary and other money in. Use Grab tracker for driving days.
-          </p>
+          <h1>{t('income.title')}</h1>
+          <p className="muted">{t('income.sub')}</p>
         </div>
         <button
           type="button"
@@ -79,15 +80,15 @@ export function IncomePage() {
             }
           }}
         >
-          {open && !editingId ? 'Close' : 'Add income'}
+          {open && !editingId ? t('common.close') : t('income.add')}
         </button>
       </section>
 
       {open ? (
         <form className="panel form" onSubmit={handleSubmit}>
-          <h2>{editingId ? 'Edit income' : 'New income'}</h2>
+          <h2>{editingId ? t('income.edit') : t('income.new')}</h2>
           <label>
-            Date
+            {t('common.date')}
             <input
               type="date"
               value={form.date}
@@ -96,7 +97,7 @@ export function IncomePage() {
             />
           </label>
           <label>
-            Income source
+            {t('income.source')}
             <select
               value={form.source}
               onChange={(e) =>
@@ -108,13 +109,13 @@ export function IncomePage() {
             >
               {INCOME_SOURCES.map((source) => (
                 <option key={source.value} value={source.value}>
-                  {source.label}
+                  {t(`src.${source.value}` as TranslationKey)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Amount (RM)
+            {t('common.amount')}
             <input
               type="number"
               min="0"
@@ -127,20 +128,20 @@ export function IncomePage() {
             />
           </label>
           <label>
-            Notes
+            {t('common.notes')}
             <input
               type="text"
-              placeholder="Optional"
+              placeholder={t('common.optional')}
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             />
           </label>
           <div className="form__actions">
             <button type="submit" className="btn btn--primary">
-              {editingId ? 'Save changes' : 'Save income'}
+              {editingId ? t('common.save') : t('income.save')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -148,19 +149,21 @@ export function IncomePage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Recent income</h2>
+          <h2>{t('income.list')}</h2>
         </div>
         {sorted.length === 0 ? (
           <EmptyState
-            title="No income yet"
-            description="Add your salary or side income to start tracking."
+            title={t('income.empty')}
+            description={t('income.emptyDesc')}
           />
         ) : (
           <ul className="entry-list">
             {sorted.map((item) => (
               <li key={item.id} className="entry">
                 <div>
-                  <p className="entry__title">{SOURCE_LABELS[item.source]}</p>
+                  <p className="entry__title">
+                    {t(`src.${item.source}` as TranslationKey)}
+                  </p>
                   <p className="entry__meta">
                     {formatDate(item.date)}
                     {item.notes ? ` · ${item.notes}` : ''}
@@ -172,10 +175,10 @@ export function IncomePage() {
                   </p>
                   <div className="entry__actions">
                     <button type="button" onClick={() => startEdit(item)}>
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button type="button" onClick={() => deleteIncome(item.id)}>
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>

@@ -1,8 +1,9 @@
 import { ComparePill } from '../components/ComparePill'
 import { MiniBars } from '../components/MiniBars'
 import { StatCard } from '../components/StatCard'
-import { CATEGORY_LABELS } from '../constants'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 import type { ExpenseCategory } from '../types'
 import {
   categoryTotals,
@@ -16,6 +17,7 @@ import { buildMonthlyInsightLines } from '../utils/v15'
 
 export function SummaryPage() {
   const { state } = useFinance()
+  const { t } = useLanguage()
   const month = currentMonthKey()
   const prev = previousMonthKey(month)
   const income = monthIncomeBreakdown(state, month)
@@ -34,7 +36,7 @@ export function SummaryPage() {
   const maxCat = Math.max(...Object.values(totals), 1)
   const chartItems = (Object.entries(totals) as [ExpenseCategory, number][])
     .map(([category, value]) => ({
-      label: CATEGORY_LABELS[category],
+      label: t(`cat.${category}` as TranslationKey),
       value,
       max: maxCat,
     }))
@@ -65,7 +67,7 @@ export function SummaryPage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Monthly report</h1>
+          <h1>{t('report.title')}</h1>
           <p className="muted">{formatMonthLabel(year, monthNum - 1)}</p>
         </div>
       </section>
@@ -73,21 +75,21 @@ export function SummaryPage() {
       <section className="panel report-hero">
         <div className="summary-rows">
           <div className="summary-row">
-            <span>Income</span>
+            <span>{t('report.income')}</span>
             <strong className="text-positive">{formatMoney(income.total)}</strong>
           </div>
           <div className="summary-row">
-            <span>Expenses</span>
+            <span>{t('report.expenses')}</span>
             <strong className="text-danger">{formatMoney(expenseTotal)}</strong>
           </div>
           <div className="summary-row">
-            <span>Savings</span>
+            <span>{t('report.savings')}</span>
             <strong className={savings >= 0 ? 'text-positive' : 'text-danger'}>
               {formatMoney(savings)}
             </strong>
           </div>
           <div className="summary-row summary-row--total">
-            <span>Net worth change</span>
+            <span>{t('report.netWorthChange')}</span>
             <strong
               className={
                 netWorthChange === null
@@ -107,59 +109,59 @@ export function SummaryPage() {
 
       <section className="stat-grid">
         <StatCard
-          label="Total income"
+          label={t('dash.totalIncome')}
           value={formatMoney(income.total)}
           tone="positive"
         >
           <ComparePill current={income.total} previous={prevIncome.total} />
         </StatCard>
         <StatCard
-          label="Total expenses"
+          label={t('dash.totalExpenses')}
           value={formatMoney(expenseTotal)}
           tone="negative"
         >
           <ComparePill current={expenseTotal} previous={prevExpenseTotal} />
         </StatCard>
         <StatCard
-          label="Total savings"
+          label={t('dash.totalSavings')}
           value={formatMoney(savings)}
           tone={savings >= 0 ? 'positive' : 'negative'}
         >
           <ComparePill current={savings} previous={prevSavings} />
         </StatCard>
-        <StatCard label="Saving rate" value={formatPercent(savingRate)}>
+        <StatCard label={t('dash.savingRate')} value={formatPercent(savingRate)}>
           <ComparePill current={savingRate} previous={prevSavingRate} />
         </StatCard>
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Income mix</h2>
+          <h2>{t('report.incomeMix')}</h2>
         </div>
         <div className="income-split">
           <div className="income-split__row">
-            <span>Salary</span>
+            <span>{t('report.salary')}</span>
             <strong>{formatMoney(income.salary)}</strong>
           </div>
           <div className="income-split__row">
-            <span>Grab</span>
+            <span>{t('report.grab')}</span>
             <strong>{formatMoney(income.grab)}</strong>
           </div>
           <div className="income-split__row">
-            <span>Other</span>
+            <span>{t('report.other')}</span>
             <strong>{formatMoney(income.other)}</strong>
           </div>
         </div>
         {income.total > 0 && income.grab > 0 ? (
           <p className="muted" style={{ marginTop: 12 }}>
-            Grab contributed {Math.round(grabShare)}% of total income
+            {t('report.grabShare', { pct: Math.round(grabShare) })}
           </p>
         ) : null}
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Biggest expense</h2>
+          <h2>{t('report.biggest')}</h2>
         </div>
         {biggest && biggest.value > 0 ? (
           <div className="highlight-stat">
@@ -167,25 +169,25 @@ export function SummaryPage() {
             <p className="highlight-stat__value">{formatMoney(biggest.value)}</p>
             <p className="muted">
               {expenseTotal > 0
-                ? `${Math.round((biggest.value / expenseTotal) * 100)}% of this month's spending`
-                : 'No expenses recorded'}
+                ? `${Math.round((biggest.value / expenseTotal) * 100)}% ${t('report.ofSpending')}`
+                : t('report.noExpenses')}
             </p>
           </div>
         ) : (
-          <p className="muted">No expenses recorded this month.</p>
+          <p className="muted">{t('report.noExpenses')}</p>
         )}
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Spending by category</h2>
+          <h2>{t('report.byCategory')}</h2>
         </div>
         <MiniBars items={chartItems} />
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Insights</h2>
+          <h2>{t('report.insights')}</h2>
         </div>
         <ul className="insights">
           {insights.map((text, i) => (

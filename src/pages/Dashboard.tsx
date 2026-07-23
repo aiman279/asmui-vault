@@ -5,8 +5,9 @@ import { MiniBars } from '../components/MiniBars'
 import { PieChart } from '../components/PieChart'
 import { ProgressBar } from '../components/ProgressBar'
 import { StatCard } from '../components/StatCard'
-import { ALLOCATION_LABELS, CATEGORY_LABELS, STATUS_LABELS } from '../constants'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 import {
   availableBalance,
   categoryTotals,
@@ -33,6 +34,7 @@ const BALANCE_HIDDEN_KEY = 'aflow-balance-hidden'
 
 export function Dashboard() {
   const { state } = useFinance()
+  const { t } = useLanguage()
   const [balanceHidden, setBalanceHidden] = useState(() => {
     try {
       return localStorage.getItem(BALANCE_HIDDEN_KEY) === '1'
@@ -72,8 +74,7 @@ export function Dashboard() {
   const maxCat = Math.max(...Object.values(totals), 1)
   const chartItems = Object.entries(totals)
     .map(([category, value]) => ({
-      label:
-        CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] ?? category,
+      label: t(`cat.${category}` as TranslationKey),
       value: value ?? 0,
       max: maxCat,
     }))
@@ -100,73 +101,75 @@ export function Dashboard() {
             {balanceHidden ? <EyeOffIcon /> : <EyeIcon />}
           </button>
         </div>
-        <h1 className="hero-balance__label">How much money do I have?</h1>
+        <h1 className="hero-balance__label">{t('dash.howMuch')}</h1>
         <p className="hero-balance__value">
           {balanceHidden ? '••••••' : formatMoney(balance)}
         </p>
         <p className="hero-balance__sub">
-          Available after spending
+          {t('dash.afterSpending')}
           {balanceHidden || committed === 0
             ? ''
-            : ` · ${formatMoney(committed)} fixed outflows`}
+            : ` · ${formatMoney(committed)} ${t('dash.fixedOutflows')}`}
         </p>
 
         <div className={`health-score health-score--${health.status}`}>
           <div className="health-score__top">
-            <span className="health-score__label">A.FLOW STATUS</span>
+            <span className="health-score__label">{t('dash.status')}</span>
             <span className={`status-pill status-pill--${health.status}`}>
               <span className="status-pill__dot" aria-hidden="true" />
-              {STATUS_LABELS[health.status]}
+              {t(`status.${health.status}` as TranslationKey)}
             </span>
           </div>
           <p className="health-score__value">
             {health.score}
             <span> / 100</span>
           </p>
-          <ProgressBar value={health.score} label="Financial health" />
-          <p className="muted health-score__blurb">{health.blurb}</p>
+          <ProgressBar value={health.score} label={t('dash.health')} />
+          <p className="muted health-score__blurb">
+            {t(`health.blurb.${health.blurbKey}` as TranslationKey)}
+          </p>
         </div>
 
         <div className="quick-actions">
           <Link to="/grab" className="btn btn--primary">
-            Log Grab
+            {t('dash.logGrab')}
           </Link>
           <Link to="/expenses" className="btn btn--ghost">
-            Add expense
+            {t('dash.addExpense')}
           </Link>
         </div>
       </section>
 
       <section className="panel reveal delay-1">
         <div className="panel__head">
-          <h2>Monthly overview</h2>
+          <h2>{t('dash.monthlyOverview')}</h2>
           <Link to="/summary" className="text-link">
-            Full report
+            {t('dash.fullReport')}
           </Link>
         </div>
         <div className="stat-grid">
           <StatCard
-            label="Total income"
+            label={t('dash.totalIncome')}
             value={formatMoney(income.total)}
             tone="positive"
           >
             <ComparePill current={income.total} previous={prevIncome.total} />
           </StatCard>
           <StatCard
-            label="Total expenses"
+            label={t('dash.totalExpenses')}
             value={formatMoney(expenseTotal)}
             tone="negative"
           >
             <ComparePill current={expenseTotal} previous={prevExpenseTotal} />
           </StatCard>
           <StatCard
-            label="Total savings"
+            label={t('dash.totalSavings')}
             value={formatMoney(savings)}
             tone={savings >= 0 ? 'positive' : 'negative'}
           >
             <ComparePill current={savings} previous={prevSavings} />
           </StatCard>
-          <StatCard label="Saving rate" value={formatPercent(savingRate)}>
+          <StatCard label={t('dash.savingRate')} value={formatPercent(savingRate)}>
             <ComparePill current={savingRate} previous={prevSavingRate} />
           </StatCard>
         </div>
@@ -174,10 +177,10 @@ export function Dashboard() {
 
       <section className="panel reveal delay-1">
         <div className="panel__head">
-          <h2>Where income goes</h2>
+          <h2>{t('dash.whereIncomeGoes')}</h2>
         </div>
         <p className="allocation-income">
-          Monthly income{' '}
+          {t('dash.monthlyIncome')}{' '}
           <strong>{formatMoney(allocation.income)}</strong>
         </p>
         <PieChart
@@ -186,25 +189,25 @@ export function Dashboard() {
           centerValue={
             allocation.income > 0 ? `${allocPct.savings}%` : '—'
           }
-          centerLabel="Saved"
+          centerLabel={t('dash.saved')}
           slices={[
             {
-              label: ALLOCATION_LABELS.needs,
+              label: t('alloc.needs'),
               amount: allocation.needs,
               color: '#0d6e5f',
             },
             {
-              label: ALLOCATION_LABELS.savings,
+              label: t('alloc.savings'),
               amount: allocation.savings,
               color: '#1a9a6c',
             },
             {
-              label: ALLOCATION_LABELS.lifestyle,
+              label: t('alloc.lifestyle'),
               amount: allocation.lifestyle,
               color: '#e0a83a',
             },
             {
-              label: ALLOCATION_LABELS.investment,
+              label: t('alloc.investment'),
               amount: allocation.investment,
               color: '#5b8def',
             },
@@ -221,7 +224,7 @@ export function Dashboard() {
           ).map(([key, amount, pct]) => (
             <div key={key} className="alloc-bars__row">
               <div className="alloc-bars__meta">
-                <span>{ALLOCATION_LABELS[key]}</span>
+                <span>{t(`alloc.${key}` as TranslationKey)}</span>
                 <span>
                   {pct}% · {formatMoney(amount)}
                 </span>
@@ -239,23 +242,23 @@ export function Dashboard() {
 
       <section className="panel grab-performance reveal delay-2">
         <div className="panel__head">
-          <h2>Is side income worth my time?</h2>
+          <h2>{t('dash.sideIncome')}</h2>
           <Link to="/grab" className="text-link">
-            Grab
+            {t('nav.grab')}
           </Link>
         </div>
         <p className="grab-performance__profit">
           {formatMoney(grabSummary.netProfit)}
         </p>
         <p className="muted grab-performance__caption">
-          Net profit
+          {t('dash.netProfit')}
           {grabSummary.profitPerHour > 0
             ? ` · ${formatMoney(grabSummary.profitPerHour)}/hour`
             : ''}
         </p>
         <div className="grab-performance__grid">
           <div>
-            <p className="grab-performance__label">Hours</p>
+            <p className="grab-performance__label">{t('dash.hours')}</p>
             <p className="grab-performance__value">
               {grabSummary.drivingHours > 0
                 ? `${grabSummary.drivingHours.toFixed(1)}h`
@@ -263,13 +266,13 @@ export function Dashboard() {
             </p>
           </div>
           <div>
-            <p className="grab-performance__label">Avg / day</p>
+            <p className="grab-performance__label">{t('dash.avgDay')}</p>
             <p className="grab-performance__value">
               {formatMoney(grabSummary.averageDailyProfit)}
             </p>
           </div>
           <div>
-            <p className="grab-performance__label">Active days</p>
+            <p className="grab-performance__label">{t('dash.activeDays')}</p>
             <p className="grab-performance__value">{grabSummary.drivingDays}</p>
           </div>
         </div>
@@ -277,22 +280,22 @@ export function Dashboard() {
 
       <section className="stat-grid reveal delay-2">
         <StatCard
-          label="Am I wealthier?"
+          label={t('dash.wealthier')}
           value={balanceHidden ? '••••' : formatMoney(netWorth)}
           tone={netWorth >= 0 ? 'positive' : 'negative'}
         >
           <Link to="/wealth" className="text-link">
-            Wealth
+            {t('nav.wealth')}
           </Link>
         </StatCard>
         <StatCard
-          label="Can I survive?"
+          label={t('dash.survive')}
           value={
             runway.months >= 99 ? '99+ mo' : `${runway.months.toFixed(1)} mo`
           }
         >
           <Link to="/wealth" className="text-link">
-            Runway
+            {t('wealth.survival')}
           </Link>
         </StatCard>
       </section>
@@ -300,16 +303,16 @@ export function Dashboard() {
       {emergency ? (
         <section className="panel reveal delay-3">
           <div className="panel__head">
-            <h2>Am I making progress?</h2>
+            <h2>{t('dash.progress')}</h2>
             <Link to="/goals" className="text-link">
-              Goals
+              {t('dash.goals')}
             </Link>
           </div>
           <p className="panel__amount">
             {formatMoney(emergency.currentAmount)}
             <span> of {formatMoney(emergency.targetAmount)}</span>
           </p>
-          <ProgressBar value={goalProgress(emergency)} label="Emergency fund" />
+          <ProgressBar value={goalProgress(emergency)} label={t('dash.emergency')} />
         </section>
       ) : null}
 
@@ -331,14 +334,14 @@ export function Dashboard() {
 
       <section className="panel reveal delay-3">
         <div className="panel__head">
-          <h2>Spending snapshot</h2>
+          <h2>{t('dash.spendingSnap')}</h2>
         </div>
         <MiniBars items={chartItems} />
       </section>
 
       <section className="panel reveal delay-3">
         <div className="panel__head">
-          <h2>Insights</h2>
+          <h2>{t('dash.insights')}</h2>
         </div>
         <ul className="insights">
           {insights.map((insight) => (

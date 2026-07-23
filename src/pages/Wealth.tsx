@@ -4,9 +4,10 @@ import { ProgressBar } from '../components/ProgressBar'
 import {
   ASSET_CATEGORIES,
   LIABILITY_CATEGORIES,
-  RUNWAY_LABELS,
 } from '../constants'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 import type {
   AssetCategory,
   LiabilityCategory,
@@ -46,6 +47,7 @@ export function WealthPage() {
     deleteWealthItem,
     recordWealthSnapshot,
   } = useFinance()
+  const { t } = useLanguage()
   const [range, setRange] = useState<Range>('3m')
   const [assetForm, setAssetForm] = useState(emptyAsset)
   const [liabilityForm, setLiabilityForm] = useState(emptyLiability)
@@ -129,17 +131,17 @@ export function WealthPage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Wealth</h1>
-          <p className="muted">Net worth, growth, and how long your money lasts.</p>
+          <h1>{t('wealth.title')}</h1>
+          <p className="muted">{t('wealth.sub')}</p>
         </div>
       </section>
 
       <section className="panel grab-hero">
-        <p className="eyebrow">Net worth</p>
-        <p className="grab-hero__label">Current net worth</p>
+        <p className="eyebrow">{t('wealth.netWorth')}</p>
+        <p className="grab-hero__label">{t('wealth.current')}</p>
         <p className="grab-hero__value">{formatMoney(totals.netWorth)}</p>
         <p className="muted">
-          Assets {formatMoney(totals.assets)} − Liabilities{' '}
+          {t('wealth.assets')} {formatMoney(totals.assets)} − {t('wealth.liabilities')}{' '}
           {formatMoney(totals.liabilities)}
         </p>
         <div className="form__actions form__actions--wrap" style={{ marginTop: 14 }}>
@@ -148,14 +150,14 @@ export function WealthPage() {
             className="btn btn--primary"
             onClick={() => recordWealthSnapshot()}
           >
-            Save snapshot
+            {t('wealth.saveSnapshot')}
           </button>
         </div>
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Wealth growth</h2>
+          <h2>{t('wealth.growth')}</h2>
         </div>
         <div className="segmented segmented--4 range-tabs">
           {(
@@ -178,22 +180,22 @@ export function WealthPage() {
         </div>
         {snapshots.length === 0 ? (
           <EmptyState
-            title="No snapshots yet"
-            description="Update assets, then tap Save snapshot to track growth."
+            title={t('wealth.noSnap')}
+            description={t('wealth.noSnapDesc')}
           />
         ) : (
           <>
             <p className="wealth-change">
               {change === null
-                ? 'Add another snapshot to see growth'
+                ? t('wealth.addSnap')
                 : change >= 0
-                  ? `Your net worth increased by ${formatMoney(change)}`
-                  : `Your net worth decreased by ${formatMoney(Math.abs(change))}`}
+                  ? `${t('wealth.increased')} ${formatMoney(change)}`
+                  : `${t('wealth.decreased')} ${formatMoney(Math.abs(change))}`}
             </p>
             {snapshots.length >= 2 ? (
               <div className="summary-rows" style={{ marginBottom: 12 }}>
                 <div className="summary-row">
-                  <span>Asset growth</span>
+                  <span>{t('wealth.assetGrowth')}</span>
                   <strong
                     className={
                       (assetChange ?? 0) >= 0 ? 'text-positive' : 'text-danger'
@@ -204,7 +206,7 @@ export function WealthPage() {
                   </strong>
                 </div>
                 <div className="summary-row">
-                  <span>Liability change</span>
+                  <span>{t('wealth.liabilityChange')}</span>
                   <strong
                     className={
                       (liabilityChange ?? 0) <= 0
@@ -247,24 +249,25 @@ export function WealthPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Can I survive if something happens?</h2>
+          <h2>{t('wealth.surviveQ')}</h2>
         </div>
         <div className="runway-pair">
           <div className={`runway-card runway-card--${survival.level}`}>
-            <p className="eyebrow">Survival runway</p>
+            <p className="eyebrow">{t('wealth.survival')}</p>
             <p className="runway-value">
               {survival.months >= 99 ? '99+' : survival.months.toFixed(1)} mo
             </p>
             <p className="muted">
-              Cash only {formatMoney(survival.cash)} ÷ monthly spend
+              {t('wealth.cashOnly')} {formatMoney(survival.cash)} ÷{' '}
+              {t('wealth.monthlySpend')}
             </p>
             <span className={`status-pill status-pill--${runwayStatus(survival.level)}`}>
               <span className="status-pill__dot" aria-hidden="true" />
-              {RUNWAY_LABELS[survival.level]}
+              {t(`runway.${survival.level}` as TranslationKey)}
             </span>
           </div>
           <div className={`runway-card runway-card--${comfortable.level}`}>
-            <p className="eyebrow">Comfortable runway</p>
+            <p className="eyebrow">{t('wealth.comfortable')}</p>
             <p className="runway-value">
               {comfortable.months >= 99
                 ? '99+'
@@ -272,31 +275,32 @@ export function WealthPage() {
               mo
             </p>
             <p className="muted">
-              Cash + ASB {formatMoney(comfortable.liquid)} ÷ monthly spend
+              {t('wealth.cashAsb')} {formatMoney(comfortable.liquid)} ÷{' '}
+              {t('wealth.monthlySpend')}
             </p>
             <span
               className={`status-pill status-pill--${runwayStatus(comfortable.level)}`}
             >
               <span className="status-pill__dot" aria-hidden="true" />
-              {RUNWAY_LABELS[comfortable.level]}
+              {t(`runway.${comfortable.level}` as TranslationKey)}
             </span>
           </div>
         </div>
         <div style={{ marginTop: 14 }}>
           <ProgressBar
             value={Math.min(100, (comfortable.months / 6) * 100)}
-            label="Comfortable buffer toward 6 months"
+            label={t('wealth.buffer')}
           />
         </div>
       </section>
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Assets</h2>
+          <h2>{t('wealth.assets')}</h2>
         </div>
         <form className="form form--inline" onSubmit={saveAsset}>
           <label>
-            Type
+            {t('wealth.type')}
             <select
               value={assetForm.category}
               onChange={(e) =>
@@ -308,13 +312,13 @@ export function WealthPage() {
             >
               {ASSET_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.label}
+                  {t(`asset.${c.value}` as TranslationKey)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Amount (RM)
+            {t('common.amount')}
             <input
               type="number"
               min="0"
@@ -328,17 +332,22 @@ export function WealthPage() {
             />
           </label>
           <button type="submit" className="btn btn--primary">
-            {editing?.kind === 'asset' ? 'Save' : 'Add asset'}
+            {editing?.kind === 'asset' ? t('common.save') : t('wealth.addAsset')}
           </button>
         </form>
         {assets.length === 0 ? (
-          <EmptyState title="No assets yet" description="Add cash, ASB, or investments." />
+          <EmptyState
+            title={t('wealth.noAssets')}
+            description={t('wealth.noAssetsDesc')}
+          />
         ) : (
           <ul className="entry-list">
             {assets.map((item) => (
               <li key={item.id} className="entry">
                 <div>
-                  <p className="entry__title">{item.label}</p>
+                  <p className="entry__title">
+                    {t(`asset.${item.category}` as TranslationKey)}
+                  </p>
                 </div>
                 <div className="entry__right">
                   <p className="entry__amount entry__amount--in">
@@ -346,10 +355,10 @@ export function WealthPage() {
                   </p>
                   <div className="entry__actions">
                     <button type="button" onClick={() => startEdit(item)}>
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button type="button" onClick={() => deleteWealthItem(item.id)}>
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>
@@ -361,11 +370,11 @@ export function WealthPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Liabilities</h2>
+          <h2>{t('wealth.liabilities')}</h2>
         </div>
         <form className="form form--inline" onSubmit={saveLiability}>
           <label>
-            Type
+            {t('wealth.type')}
             <select
               value={liabilityForm.category}
               onChange={(e) =>
@@ -377,13 +386,13 @@ export function WealthPage() {
             >
               {LIABILITY_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>
-                  {c.label}
+                  {t(`debt.${c.value}` as TranslationKey)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Amount (RM)
+            {t('common.amount')}
             <input
               type="number"
               min="0"
@@ -397,17 +406,22 @@ export function WealthPage() {
             />
           </label>
           <button type="submit" className="btn btn--primary">
-            {editing?.kind === 'liability' ? 'Save' : 'Add debt'}
+            {editing?.kind === 'liability' ? t('common.save') : t('wealth.addDebt')}
           </button>
         </form>
         {liabilities.length === 0 ? (
-          <EmptyState title="No debts listed" description="Add car, house, or other loans." />
+          <EmptyState
+            title={t('wealth.noDebts')}
+            description={t('wealth.noDebtsDesc')}
+          />
         ) : (
           <ul className="entry-list">
             {liabilities.map((item) => (
               <li key={item.id} className="entry">
                 <div>
-                  <p className="entry__title">{item.label}</p>
+                  <p className="entry__title">
+                    {t(`debt.${item.category}` as TranslationKey)}
+                  </p>
                 </div>
                 <div className="entry__right">
                   <p className="entry__amount entry__amount--out">
@@ -415,10 +429,10 @@ export function WealthPage() {
                   </p>
                   <div className="entry__actions">
                     <button type="button" onClick={() => startEdit(item)}>
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button type="button" onClick={() => deleteWealthItem(item.id)}>
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>
@@ -428,12 +442,12 @@ export function WealthPage() {
         )}
         {items.length > 0 ? (
           <div className="summary-row summary-row--total commitment-total">
-            <span>Net worth</span>
+            <span>{t('wealth.netWorth')}</span>
             <strong className={totals.netWorth >= 0 ? 'text-positive' : 'text-danger'}>
               {formatMoney(totals.netWorth)}
             </strong>
             <span className="muted" style={{ width: '100%', marginTop: 4 }}>
-              Liquid share of assets:{' '}
+              {t('wealth.liquidShare')}{' '}
               {totals.assets > 0
                 ? formatPercent((comfortable.liquid / totals.assets) * 100)
                 : '0%'}

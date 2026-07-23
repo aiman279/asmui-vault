@@ -3,6 +3,7 @@ import { EmptyState } from '../components/EmptyState'
 import { PieChart } from '../components/PieChart'
 import { StatCard } from '../components/StatCard'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
 import type { GrabRecord } from '../types'
 import {
   currentMonthKey,
@@ -48,6 +49,7 @@ type Tab = 'day' | 'week' | 'month'
 export function GrabPage() {
   const { state, addGrabRecord, updateGrabRecord, deleteGrabRecord } =
     useFinance()
+  const { t } = useLanguage()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -159,10 +161,16 @@ export function GrabPage() {
         <div>
           <p className="entry__title">{formatDate(item.date)}</p>
           <p className="entry__meta">
-            Earn {formatMoney(item.grossEarnings)}
-            {item.petrolCost > 0 ? ` · Gas ${formatMoney(item.petrolCost)}` : ''}
-            {item.otherCost > 0 ? ` · Other ${formatMoney(item.otherCost)}` : ''}
-            {item.credit > 0 ? ` · Credit ${formatMoney(item.credit)}` : ''}
+            {t('grab.gross')} {formatMoney(item.grossEarnings)}
+            {item.petrolCost > 0
+              ? ` · ${t('grab.petrol')} ${formatMoney(item.petrolCost)}`
+              : ''}
+            {item.otherCost > 0
+              ? ` · ${t('grab.other')} ${formatMoney(item.otherCost)}`
+              : ''}
+            {item.credit > 0
+              ? ` · ${t('grab.credit')} ${formatMoney(item.credit)}`
+              : ''}
             {item.drivingHours > 0 ? ` · ${item.drivingHours}h` : ''}
             {item.notes ? ` · ${item.notes}` : ''}
           </p>
@@ -177,10 +185,10 @@ export function GrabPage() {
           </p>
           <div className="entry__actions">
             <button type="button" onClick={() => startEdit(item)}>
-              Edit
+              {t('common.edit')}
             </button>
             <button type="button" onClick={() => deleteGrabRecord(item.id)}>
-              Delete
+              {t('common.delete')}
             </button>
           </div>
         </div>
@@ -201,10 +209,10 @@ export function GrabPage() {
       <>
         <section className="grab-hero panel">
           <p className="eyebrow">{label}</p>
-          <p className="grab-hero__label">GRAB PERFORMANCE</p>
+          <p className="grab-hero__label">{t('grab.performance')}</p>
           <p className="grab-hero__value">{formatMoney(summary.netProfit)}</p>
           <p className="muted">
-            Net after petrol, other cost, and credit
+            {t('grab.netAfter')}
             {summary.profitPerHour > 0
               ? ` · ${formatMoney(summary.profitPerHour)}/hour`
               : ''}
@@ -213,22 +221,22 @@ export function GrabPage() {
 
         <section className="stat-grid numbers-grid">
           <StatCard
-            label="Gross"
+            label={t('grab.gross')}
             value={formatMoney(summary.grossEarnings)}
             tone="positive"
           />
           <StatCard
-            label="Petrol"
+            label={t('grab.petrol')}
             value={formatMoney(summary.petrolCost)}
             tone="negative"
           />
           <StatCard
-            label="Net Profit"
+            label={t('grab.netProfit')}
             value={formatMoney(summary.netProfit)}
             tone={summary.netProfit >= 0 ? 'positive' : 'negative'}
           />
           <StatCard
-            label="Driving Hours"
+            label={t('grab.drivingHours')}
             value={
               summary.drivingHours > 0
                 ? `${summary.drivingHours.toFixed(1)}h`
@@ -236,7 +244,7 @@ export function GrabPage() {
             }
           />
           <StatCard
-            label="Profit / Hour"
+            label={t('grab.profitHour')}
             value={
               summary.profitPerHour > 0
                 ? formatMoney(summary.profitPerHour)
@@ -244,22 +252,25 @@ export function GrabPage() {
             }
             tone="positive"
           />
-          <StatCard label="Days Active" value={String(summary.drivingDays)} />
+          <StatCard
+            label={t('grab.daysActive')}
+            value={String(summary.drivingDays)}
+          />
         </section>
 
         <section className="panel">
           <div className="panel__head">
-            <h2>Costs</h2>
+            <h2>{t('grab.costs')}</h2>
           </div>
           <div className="summary-rows">
             <div className="summary-row">
-              <span>Total Petrol Cost</span>
+              <span>{t('grab.totalPetrol')}</span>
               <strong className="text-danger">
                 {formatMoney(summary.petrolCost)}
               </strong>
             </div>
             <div className="summary-row">
-              <span>Total Other Cost</span>
+              <span>{t('grab.totalOther')}</span>
               <strong className="text-danger">
                 {formatMoney(summary.otherCost)}
               </strong>
@@ -269,27 +280,27 @@ export function GrabPage() {
 
         <section className="panel">
           <PieChart
-            title="Grab Income Breakdown"
+            title={t('grab.breakdown')}
             baseTotal={summary.grossEarnings}
             centerValue={
               summary.grossEarnings > 0
                 ? `${Math.round(percents.netProfit)}%`
                 : '—'
             }
-            centerLabel="Net profit"
+            centerLabel={t('grab.netProfit')}
             slices={[
               {
-                label: 'Net Profit',
+                label: t('grab.netProfitLabel'),
                 amount: Math.max(0, summary.netProfit),
                 color: '#1a9a6c',
               },
               {
-                label: 'Petrol Cost',
+                label: t('grab.petrolCost'),
                 amount: summary.petrolCost,
                 color: '#d4543c',
               },
               {
-                label: 'Other Cost',
+                label: t('grab.otherCost'),
                 amount: summary.otherCost,
                 color: '#e0a83a',
               },
@@ -299,7 +310,7 @@ export function GrabPage() {
 
         <section className="panel">
           <div className="panel__head">
-            <h2>Performance insights</h2>
+            <h2>{t('grab.insights')}</h2>
           </div>
           <ul className="insights">
             {buildGrabInsights(
@@ -318,12 +329,12 @@ export function GrabPage() {
 
         <section className="panel">
           <div className="panel__head">
-            <h2>{mode === 'month' ? 'Week logs' : 'Daily logs'}</h2>
+            <h2>{mode === 'month' ? t('grab.weekLogs') : t('grab.dailyLogs')}</h2>
           </div>
           {records.length === 0 ? (
             <EmptyState
-              title="No days in this period"
-              description="Key in a day first, then check back here."
+              title={t('grab.noDays')}
+              description={t('grab.keyInFirst')}
             />
           ) : mode === 'month' ? (
             <ul className="entry-list">
@@ -335,9 +346,9 @@ export function GrabPage() {
                       {group.summary.drivingDays} day
                       {group.summary.drivingDays === 1 ? '' : 's'}
                       {' · '}
-                      Petrol {formatMoney(group.summary.petrolCost)}
+                      {t('grab.petrol')} {formatMoney(group.summary.petrolCost)}
                       {' · '}
-                      Other {formatMoney(group.summary.otherCost)}
+                      {t('grab.other')} {formatMoney(group.summary.otherCost)}
                     </p>
                   </div>
                   <div className="entry__right">
@@ -352,7 +363,7 @@ export function GrabPage() {
                           setTab('week')
                         }}
                       >
-                        View week
+                        {t('grab.viewWeek')}
                       </button>
                     </div>
                   </div>
@@ -371,8 +382,8 @@ export function GrabPage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Grab</h1>
-          <p className="muted">Key in by day. Track by week or month.</p>
+          <h1>{t('grab.title')}</h1>
+          <p className="muted">{t('grab.sub')}</p>
         </div>
       </section>
 
@@ -384,7 +395,7 @@ export function GrabPage() {
           className={`segmented__btn${tab === 'day' ? ' is-active' : ''}`}
           onClick={() => setTab('day')}
         >
-          Day
+          {t('grab.day')}
         </button>
         <button
           type="button"
@@ -393,7 +404,7 @@ export function GrabPage() {
           className={`segmented__btn${tab === 'week' ? ' is-active' : ''}`}
           onClick={() => setTab('week')}
         >
-          Week
+          {t('grab.week')}
         </button>
         <button
           type="button"
@@ -402,7 +413,7 @@ export function GrabPage() {
           className={`segmented__btn${tab === 'month' ? ' is-active' : ''}`}
           onClick={() => setTab('month')}
         >
-          Month
+          {t('grab.month')}
         </button>
       </div>
 
@@ -410,8 +421,7 @@ export function GrabPage() {
         <>
           <section className="page-header page-header--compact">
             <div>
-              <h2>Daily logs</h2>
-              <p className="muted">Tap Key in when you finish a drive.</p>
+              <h2>{t('grab.dailyLogs')}</h2>
             </div>
             <button
               type="button"
@@ -424,18 +434,15 @@ export function GrabPage() {
                 }
               }}
             >
-              {formOpen && !editingId ? 'Close' : 'Key in'}
+              {formOpen && !editingId ? t('common.close') : t('grab.logDay')}
             </button>
           </section>
 
           {formOpen ? (
             <form className="panel form" onSubmit={handleSubmit}>
-              <h2>{editingId ? 'Edit day' : 'Key in day'}</h2>
-              <p className="muted form-hint">
-                Log one driving day. Week & Month will update automatically.
-              </p>
+              <h2>{editingId ? t('grab.editDay') : t('grab.logDay')}</h2>
               <label>
-                Date
+                {t('common.date')}
                 <input
                   type="date"
                   value={form.date}
@@ -446,7 +453,7 @@ export function GrabPage() {
                 />
               </label>
               <label>
-                Gross Earnings (Earn)
+                {t('grab.grossEarnings')}
                 <input
                   type="number"
                   min="0"
@@ -461,7 +468,7 @@ export function GrabPage() {
                 />
               </label>
               <label>
-                Petrol / Gas Cost
+                {t('grab.petrolGas')}
                 <input
                   type="number"
                   min="0"
@@ -475,7 +482,7 @@ export function GrabPage() {
                 />
               </label>
               <label>
-                Other Cost
+                {t('grab.other')}
                 <input
                   type="number"
                   min="0"
@@ -489,7 +496,7 @@ export function GrabPage() {
                 />
               </label>
               <label>
-                Credit / Advance
+                {t('grab.credit')}
                 <input
                   type="number"
                   min="0"
@@ -503,7 +510,7 @@ export function GrabPage() {
                 />
               </label>
               <label>
-                Driving Hours
+                {t('grab.hours')}
                 <input
                   type="number"
                   min="0"
@@ -517,10 +524,10 @@ export function GrabPage() {
                 />
               </label>
               <label>
-                Notes
+                {t('common.notes')}
                 <input
                   type="text"
-                  placeholder="Optional"
+                  placeholder={t('common.optional')}
                   value={form.notes}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, notes: e.target.value }))
@@ -529,25 +536,24 @@ export function GrabPage() {
               </label>
 
               <div className="net-preview">
-                <span>Net Profit</span>
+                <span>{t('grab.liveNet')}</span>
                 <strong
                   className={liveNet >= 0 ? 'text-positive' : 'text-danger'}
                 >
                   {formatMoney(liveNet)}
                 </strong>
-                <p className="muted">Earn − Petrol − Other − Credit</p>
               </div>
 
               <div className="form__actions">
                 <button type="submit" className="btn btn--primary">
-                  {editingId ? 'Save changes' : 'Save day'}
+                  {editingId ? t('common.save') : t('grab.saveDay')}
                 </button>
                 <button
                   type="button"
                   className="btn btn--ghost"
                   onClick={resetForm}
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -555,12 +561,12 @@ export function GrabPage() {
 
           <section className="panel">
             <div className="panel__head">
-              <h2>Recent days</h2>
+              <h2>{t('grab.recent')}</h2>
             </div>
             {recentDays.length === 0 ? (
               <EmptyState
-                title="No days yet"
-                description="Tap Key in to log your first Grab day."
+                title={t('grab.empty')}
+                description={t('grab.emptyDesc')}
               />
             ) : (
               <ul className="entry-list">{recentDays.map(renderDay)}</ul>

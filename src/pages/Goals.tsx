@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { EmptyState } from '../components/EmptyState'
 import { ProgressBar } from '../components/ProgressBar'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
 import type { Goal } from '../types'
 import { formatDate, formatMoney, formatPercent } from '../utils/format'
 import { goalMilestone } from '../utils/v15'
@@ -15,6 +16,7 @@ const emptyForm = {
 
 export function GoalsPage() {
   const { state, addGoal, updateGoal, deleteGoal } = useFinance()
+  const { t } = useLanguage()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -70,8 +72,8 @@ export function GoalsPage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Goals</h1>
-          <p className="muted">Am I making progress toward what matters?</p>
+          <h1>{t('goals.title')}</h1>
+          <p className="muted">{t('goals.sub')}</p>
         </div>
         <button
           type="button"
@@ -86,15 +88,15 @@ export function GoalsPage() {
             }
           }}
         >
-          {open && !editingId ? 'Close' : 'Add goal'}
+          {open && !editingId ? t('common.close') : t('goals.add')}
         </button>
       </section>
 
       {open ? (
         <form className="panel form" onSubmit={handleSubmit}>
-          <h2>{editingId ? 'Edit goal' : 'New goal'}</h2>
+          <h2>{editingId ? t('goals.edit') : t('goals.new')}</h2>
           <label>
-            Goal name
+            {t('goals.name')}
             <input
               type="text"
               value={form.name}
@@ -103,7 +105,7 @@ export function GoalsPage() {
             />
           </label>
           <label>
-            Target amount (RM)
+            {t('goals.target')}
             <input
               type="number"
               min="0"
@@ -117,7 +119,7 @@ export function GoalsPage() {
             />
           </label>
           <label>
-            Current amount (RM)
+            {t('goals.current')}
             <input
               type="number"
               min="0"
@@ -131,7 +133,7 @@ export function GoalsPage() {
             />
           </label>
           <label>
-            Target date
+            {t('goals.targetDate')}
             <input
               type="date"
               value={form.targetDate}
@@ -143,10 +145,10 @@ export function GoalsPage() {
           </label>
           <div className="form__actions">
             <button type="submit" className="btn btn--primary">
-              {editingId ? 'Save changes' : 'Save goal'}
+              {editingId ? t('common.save') : t('goals.save')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -154,8 +156,8 @@ export function GoalsPage() {
 
       {state.goals.length === 0 ? (
         <EmptyState
-          title="No goals yet"
-          description="Set an emergency fund, house fund, or investment target."
+          title={t('goals.empty')}
+          description={t('goals.emptyDesc')}
         />
       ) : (
         state.goals.map((goal) => {
@@ -173,33 +175,37 @@ export function GoalsPage() {
               <ProgressBar value={m.progress} />
               <div className="goal-milestone">
                 <div className="summary-row">
-                  <span>Next milestone</span>
+                  <span>{t('goals.nextMilestone')}</span>
                   <strong>{formatMoney(m.nextMilestone)}</strong>
                 </div>
                 <div className="summary-row">
-                  <span>Remaining to milestone</span>
+                  <span>{t('goals.remainingMilestone')}</span>
                   <strong>{formatMoney(m.remainingToMilestone)}</strong>
                 </div>
                 <div className="summary-row">
-                  <span>Estimated completion</span>
+                  <span>{t('goals.estimated')}</span>
                   <strong>
                     {m.estimatedMonths === null
                       ? '—'
                       : m.estimatedMonths === 0
-                        ? 'Done'
-                        : `~${m.estimatedMonths} month${m.estimatedMonths === 1 ? '' : 's'}`}
+                        ? t('goals.done')
+                        : `~${m.estimatedMonths} ${
+                            m.estimatedMonths === 1
+                              ? t('goals.month')
+                              : t('goals.months')
+                          }`}
                   </strong>
                 </div>
                 <p className="muted" style={{ marginTop: 8 }}>
-                  Target date {formatDate(goal.targetDate)}
+                  {t('goals.targetDateLabel')} {formatDate(goal.targetDate)}
                 </p>
               </div>
               <div className="entry__actions" style={{ marginTop: 12 }}>
                 <button type="button" onClick={() => startEdit(goal)}>
-                  Edit
+                  {t('common.edit')}
                 </button>
                 <button type="button" onClick={() => deleteGoal(goal.id)}>
-                  Delete
+                  {t('common.delete')}
                 </button>
               </div>
             </section>

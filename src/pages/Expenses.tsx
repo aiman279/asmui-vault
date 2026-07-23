@@ -1,11 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { EmptyState } from '../components/EmptyState'
 import {
-  CATEGORY_LABELS,
   EXPENSE_CATEGORIES,
   PAYMENT_METHODS,
 } from '../constants'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 import type { Expense, ExpenseCategory, PaymentMethod } from '../types'
 import {
   currentMonthKey,
@@ -27,6 +28,7 @@ const emptyForm = {
 
 export function ExpensesPage() {
   const { state, addExpense, updateExpense, deleteExpense } = useFinance()
+  const { t } = useLanguage()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -112,8 +114,8 @@ export function ExpensesPage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Expenses</h1>
-          <p className="muted">Quick daily logging — under a minute.</p>
+          <h1>{t('spend.title')}</h1>
+          <p className="muted">{t('spend.sub')}</p>
         </div>
         <button
           type="button"
@@ -128,20 +130,20 @@ export function ExpensesPage() {
             }
           }}
         >
-          {open && !editingId ? 'Close' : 'Add expense'}
+          {open && !editingId ? t('common.close') : t('spend.add')}
         </button>
       </section>
 
       <section className="panel hero-balance hero-balance--compact">
         <p className="eyebrow">{formatMonthLabel(year, monthNum - 1)}</p>
-        <p className="hero-balance__label">Total spend this month</p>
+        <p className="hero-balance__label">{t('spend.totalMonth')}</p>
         <p className="hero-balance__value hero-balance__value--sm">
           {formatMoney(liveMonthTotal)}
         </p>
         <p className="hero-balance__sub">
-          {monthExpenses.length} expense
-          {monthExpenses.length === 1 ? '' : 's'}
-          {open ? ' · updating as you type' : ''}
+          {monthExpenses.length}{' '}
+          {monthExpenses.length === 1 ? t('spend.count') : t('spend.countPlural')}
+          {open ? ` · ${t('spend.updating')}` : ''}
         </p>
       </section>
 
@@ -149,23 +151,25 @@ export function ExpensesPage() {
         <section className="panel">
           <div className="summary-rows">
             <div className="summary-row">
-              <span>Biggest category</span>
+              <span>{t('spend.biggest')}</span>
               <strong>
                 {biggest.category
-                  ? CATEGORY_LABELS[biggest.category]
+                  ? t(`cat.${biggest.category}` as TranslationKey)
                   : '—'}
               </strong>
             </div>
             {biggest.category ? (
               <div className="summary-row">
-                <span>{CATEGORY_LABELS[biggest.category]} spend</span>
+                <span>
+                  {t(`cat.${biggest.category}` as TranslationKey)}
+                </span>
                 <strong className="text-danger">
                   {formatMoney(biggest.amount)}
                 </strong>
               </div>
             ) : null}
             <div className="summary-row">
-              <span>Spending trend</span>
+              <span>{t('spend.trend')}</span>
               <strong
                 className={
                   spendTrend === null
@@ -178,8 +182,8 @@ export function ExpensesPage() {
                 }
               >
                 {spendTrend === null
-                  ? 'No last month yet'
-                  : `${spendTrend > 0 ? '+' : ''}${Math.round(spendTrend)}% vs last month`}
+                  ? t('spend.noLastMonth')
+                  : `${spendTrend > 0 ? '+' : ''}${Math.round(spendTrend)}% ${t('spend.vsLast')}`}
               </strong>
             </div>
           </div>
@@ -188,9 +192,9 @@ export function ExpensesPage() {
 
       {open ? (
         <form className="panel form" onSubmit={handleSubmit}>
-          <h2>{editingId ? 'Edit expense' : 'New expense'}</h2>
+          <h2>{editingId ? t('spend.edit') : t('spend.new')}</h2>
           <label>
-            Date
+            {t('common.date')}
             <input
               type="date"
               value={form.date}
@@ -199,7 +203,7 @@ export function ExpensesPage() {
             />
           </label>
           <label>
-            Category
+            {t('spend.category')}
             <select
               value={form.category}
               onChange={(e) =>
@@ -211,13 +215,13 @@ export function ExpensesPage() {
             >
               {EXPENSE_CATEGORIES.map((category) => (
                 <option key={category.value} value={category.value}>
-                  {category.label}
+                  {t(`cat.${category.value}` as TranslationKey)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Amount (RM)
+            {t('common.amount')}
             <input
               type="number"
               min="0"
@@ -230,7 +234,7 @@ export function ExpensesPage() {
             />
           </label>
           <label>
-            Payment method
+            {t('spend.payment')}
             <select
               value={form.paymentMethod}
               onChange={(e) =>
@@ -242,37 +246,37 @@ export function ExpensesPage() {
             >
               {PAYMENT_METHODS.map((method) => (
                 <option key={method.value} value={method.value}>
-                  {method.label}
+                  {t(`pay.${method.value}` as TranslationKey)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Notes
+            {t('common.notes')}
             <input
               type="text"
-              placeholder="Optional"
+              placeholder={t('common.optional')}
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
             />
           </label>
           <div className="net-preview">
-            <span>Total spend this month</span>
+            <span>{t('spend.totalMonth')}</span>
             <strong className="text-danger">{formatMoney(liveMonthTotal)}</strong>
             <p className="muted">
               {draftInThisMonth
                 ? editingId
-                  ? 'Total after this edit'
-                  : 'Current month total + this expense'
-                : 'This date is outside the current month'}
+                  ? t('spend.afterEdit')
+                  : t('spend.plusThis')
+                : t('spend.outsideMonth')}
             </p>
           </div>
           <div className="form__actions">
             <button type="submit" className="btn btn--primary">
-              {editingId ? 'Save changes' : 'Save expense'}
+              {editingId ? t('common.save') : t('spend.save')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -280,13 +284,13 @@ export function ExpensesPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Recent expenses</h2>
+          <h2>{t('spend.recent')}</h2>
           <span className="badge">{formatMoney(monthTotal)}</span>
         </div>
         {sorted.length === 0 ? (
           <EmptyState
-            title="No expenses yet"
-            description="Log a purchase to see where your money goes."
+            title={t('spend.empty')}
+            description={t('spend.emptyDesc')}
           />
         ) : (
           <>
@@ -295,15 +299,11 @@ export function ExpensesPage() {
                 <li key={item.id} className="entry">
                   <div>
                     <p className="entry__title">
-                      {CATEGORY_LABELS[item.category]}
+                      {t(`cat.${item.category}` as TranslationKey)}
                     </p>
                     <p className="entry__meta">
                       {formatDate(item.date)} ·{' '}
-                      {
-                        PAYMENT_METHODS.find(
-                          (m) => m.value === item.paymentMethod,
-                        )?.label
-                      }
+                      {t(`pay.${item.paymentMethod}` as TranslationKey)}
                       {item.notes ? ` · ${item.notes}` : ''}
                     </p>
                   </div>
@@ -313,13 +313,13 @@ export function ExpensesPage() {
                     </p>
                     <div className="entry__actions">
                       <button type="button" onClick={() => startEdit(item)}>
-                        Edit
+                        {t('common.edit')}
                       </button>
                       <button
                         type="button"
                         onClick={() => deleteExpense(item.id)}
                       >
-                        Delete
+                        {t('common.delete')}
                       </button>
                     </div>
                   </div>
@@ -327,7 +327,7 @@ export function ExpensesPage() {
               ))}
             </ul>
             <div className="summary-row summary-row--total commitment-total">
-              <span>Total spend this month</span>
+              <span>{t('spend.totalMonth')}</span>
               <strong className="text-danger">{formatMoney(monthTotal)}</strong>
             </div>
           </>

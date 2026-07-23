@@ -140,7 +140,7 @@ export interface HealthScoreResult {
     debt: number
     spending: number
   }
-  blurb: string
+  blurbKey: 'default' | 'healthy' | 'critical' | 'emergency' | 'savings'
 }
 
 export interface AllocationResult {

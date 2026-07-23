@@ -106,13 +106,14 @@ export function financialHealthScore(state: FinanceState): HealthScoreResult {
   if (score >= 70) status = 'healthy'
   else if (score < 40) status = 'critical'
 
-  let blurb = 'Keep logging — your score gets clearer every month'
-  if (status === 'healthy') blurb = 'You are in a strong position — stay consistent'
-  else if (status === 'critical') blurb = 'Focus on saving and building your buffer'
-  else if (parts.emergency < 10) blurb = 'Building your emergency fund will lift this score'
-  else if (parts.savingsRate < 10) blurb = 'A higher saving rate will improve your score'
+  let blurbKey: 'default' | 'healthy' | 'critical' | 'emergency' | 'savings' =
+    'default'
+  if (status === 'healthy') blurbKey = 'healthy'
+  else if (status === 'critical') blurbKey = 'critical'
+  else if (parts.emergency < 10) blurbKey = 'emergency'
+  else if (parts.savingsRate < 10) blurbKey = 'savings'
 
-  return { score, status, parts, blurb }
+  return { score, status, parts, blurbKey }
 }
 
 export function moneyAllocation(

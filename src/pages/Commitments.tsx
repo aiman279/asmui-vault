@@ -5,6 +5,8 @@ import {
   INCOME_SOURCES,
 } from '../constants'
 import { useFinance } from '../hooks/useFinance'
+import { useLanguage } from '../hooks/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 import type {
   Commitment,
   ExpenseCategory,
@@ -28,6 +30,7 @@ const emptyForm = {
 export function CommitmentsPage() {
   const { state, addCommitment, updateCommitment, deleteCommitment } =
     useFinance()
+  const { t } = useLanguage()
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -83,10 +86,8 @@ export function CommitmentsPage() {
     <div className="stack">
       <section className="page-header">
         <div>
-          <h1>Recurring</h1>
-          <p className="muted">
-            Auto-posts each month — salary in, bills out. Edit anytime.
-          </p>
+          <h1>{t('recur.title')}</h1>
+          <p className="muted">{t('recur.sub')}</p>
         </div>
         <button
           type="button"
@@ -100,19 +101,19 @@ export function CommitmentsPage() {
             }
           }}
         >
-          {open && !editingId ? 'Close' : 'Add recurring'}
+          {open && !editingId ? t('common.close') : t('recur.add')}
         </button>
       </section>
 
       <section className="panel hero-balance hero-balance--compact">
-        <p className="eyebrow">This month auto</p>
+        <p className="eyebrow">{t('recur.thisMonth')}</p>
         <div className="summary-rows">
           <div className="summary-row">
-            <span>Income recurring</span>
+            <span>{t('recur.incomeRecurring')}</span>
             <strong className="text-positive">+{formatMoney(inTotal)}</strong>
           </div>
           <div className="summary-row">
-            <span>Expense recurring</span>
+            <span>{t('recur.expenseRecurring')}</span>
             <strong className="text-danger">−{formatMoney(outTotal)}</strong>
           </div>
         </div>
@@ -120,9 +121,9 @@ export function CommitmentsPage() {
 
       {open ? (
         <form className="panel form" onSubmit={handleSubmit}>
-          <h2>{editingId ? 'Edit recurring' : 'New recurring'}</h2>
+          <h2>{editingId ? t('recur.edit') : t('recur.new')}</h2>
           <label>
-            Name
+            {t('recur.name')}
             <input
               type="text"
               placeholder="Salary, Rent, Car…"
@@ -132,7 +133,7 @@ export function CommitmentsPage() {
             />
           </label>
           <label>
-            Type
+            {t('recur.type')}
             <select
               value={form.direction}
               onChange={(e) =>
@@ -142,12 +143,12 @@ export function CommitmentsPage() {
                 }))
               }
             >
-              <option value="in">Income (+)</option>
-              <option value="out">Expense (−)</option>
+              <option value="in">{t('recur.incomePlus')}</option>
+              <option value="out">{t('recur.expenseMinus')}</option>
             </select>
           </label>
           <label>
-            Amount (RM / month)
+            {t('recur.amountMonth')}
             <input
               type="number"
               min="0"
@@ -159,7 +160,7 @@ export function CommitmentsPage() {
             />
           </label>
           <label>
-            Day of month
+            {t('recur.day')}
             <input
               type="number"
               min="1"
@@ -172,7 +173,7 @@ export function CommitmentsPage() {
           </label>
           {form.direction === 'in' ? (
             <label>
-              Income source
+              {t('recur.incomeSource')}
               <select
                 value={form.source}
                 onChange={(e) =>
@@ -184,14 +185,14 @@ export function CommitmentsPage() {
               >
                 {INCOME_SOURCES.map((s) => (
                   <option key={s.value} value={s.value}>
-                    {s.label}
+                    {t(`src.${s.value}` as TranslationKey)}
                   </option>
                 ))}
               </select>
             </label>
           ) : (
             <label>
-              Expense category
+              {t('recur.expenseCat')}
               <select
                 value={form.category}
                 onChange={(e) =>
@@ -203,21 +204,19 @@ export function CommitmentsPage() {
               >
                 {EXPENSE_CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
-                    {c.label}
+                    {t(`cat.${c.value}` as TranslationKey)}
                   </option>
                 ))}
               </select>
             </label>
           )}
-          <p className="muted form-hint">
-            Saves and posts into Income or Spend for this month automatically.
-          </p>
+          <p className="muted form-hint">{t('recur.hint')}</p>
           <div className="form__actions">
             <button type="submit" className="btn btn--primary">
-              {editingId ? 'Save' : 'Add'}
+              {editingId ? t('common.save') : t('common.add')}
             </button>
             <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -225,12 +224,12 @@ export function CommitmentsPage() {
 
       <section className="panel">
         <div className="panel__head">
-          <h2>Your recurrings</h2>
+          <h2>{t('recur.list')}</h2>
         </div>
         {state.commitments.length === 0 ? (
           <EmptyState
-            title="No recurrings yet"
-            description="Add salary (+), rent (−), car (−), parents (−)."
+            title={t('recur.empty')}
+            description={t('recur.emptyDesc')}
           />
         ) : (
           <ul className="entry-list">
@@ -239,8 +238,11 @@ export function CommitmentsPage() {
                 <div>
                   <p className="entry__title">{item.name}</p>
                   <p className="entry__meta">
-                    {item.direction === 'in' ? 'Income' : 'Expense'} · Day{' '}
-                    {item.dayOfMonth ?? 1} · Auto each month
+                    {item.direction === 'in'
+                      ? t('recur.income')
+                      : t('recur.expense')}{' '}
+                    · {t('recur.dayLabel')} {item.dayOfMonth ?? 1} ·{' '}
+                    {t('recur.auto')}
                   </p>
                 </div>
                 <div className="entry__right">
@@ -256,13 +258,13 @@ export function CommitmentsPage() {
                   </p>
                   <div className="entry__actions">
                     <button type="button" onClick={() => startEdit(item)}>
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button
                       type="button"
                       onClick={() => deleteCommitment(item.id)}
                     >
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>

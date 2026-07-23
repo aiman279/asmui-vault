@@ -1,15 +1,19 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { LanguageToggle } from './LanguageToggle'
 import { ThemeToggle } from './ThemeToggle'
-
-const links = [
-  { to: '/', label: 'Home', icon: HomeIcon },
-  { to: '/grab', label: 'Grab', icon: GrabIcon },
-  { to: '/expenses', label: 'Spend', icon: SpendIcon },
-  { to: '/wealth', label: 'Wealth', icon: WealthIcon },
-  { to: '/more', label: 'More', icon: MoreIcon },
-]
+import { useLanguage } from '../hooks/useLanguage'
 
 export function Layout() {
+  const { t } = useLanguage()
+
+  const links = [
+    { to: '/', label: t('nav.home'), icon: HomeIcon },
+    { to: '/grab', label: t('nav.grab'), icon: GrabIcon },
+    { to: '/expenses', label: t('nav.spend'), icon: SpendIcon },
+    { to: '/wealth', label: t('nav.wealth'), icon: WealthIcon },
+    { to: '/more', label: t('nav.more'), icon: MoreIcon },
+  ]
+
   return (
     <div className="app-shell">
       <div className="app-bg" aria-hidden="true" />
@@ -19,10 +23,13 @@ export function Layout() {
             <span className="brand__mark" aria-hidden="true" />
             <div>
               <p className="brand__name">A.FLOW</p>
-              <p className="brand__tag">Track less. Understand more.</p>
+              <p className="brand__tag">{t('brand.tag')}</p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="topbar__actions">
+            <LanguageToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
