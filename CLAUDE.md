@@ -25,7 +25,7 @@ React 19, TypeScript ~6.0, Vite 8, React Router 7, vite-plugin-pwa. Linting with
 - Follow existing patterns; do not add dependencies without approval.
 
 ## Deployment
-Vercel (`vercel.json`). Production deploys require approval.
+Vercel (`vercel.json`). Deploy only when the owner explicitly asks; that request counts as approval.
 
 ## Repository and secrets
 Own Git repo, remote `origin` on GitHub. No `.env` files present.
